@@ -67,3 +67,28 @@ Task(model="sonnet", prompt="实现 Agent CRUD API...")              # 简单 CR
 Task(model="opus", prompt="实现唤醒服务的小模型选人算法...")          # 复杂逻辑
 Task(model="opus", prompt="设计分布式记忆系统架构...")               # 复杂架构
 ```
+
+## 踩坑记录
+
+### 2026-02-14: Sonnet 做多步骤 DevOps 任务耗时过长
+
+**任务**：git push + SSH 远程部署 + 写 Bot 脚本 + 端到端验证（一个 Task 包含 5 个串行步骤）
+
+**耗时**：~23 分钟（79 次 tool call），Opus 预估 5-8 分钟
+
+**原因分析**：
+1. **任务粒度过大**：把 git push、远程部署、写脚本、验证全塞进一个 Task，Sonnet 缺乏全局规划能力，遇到问题时反复试错
+2. **环境调试链路长**：远程 SSH + pip install + config 修复 + server 启动，每一步都可能出错，Sonnet 的错误恢复能力弱于 Opus
+3. **不适合 Sonnet 的场景**：涉及多环境（本地 Windows + 远程 Linux）、多工具（git/gh/ssh/curl）、多步骤依赖的 DevOps 任务，实际复杂度高于"简单实施"
+
+**教训**：
+- **DevOps/部署类任务用 Opus**：涉及 SSH、环境配置、多步骤依赖的任务，Sonnet 容易在错误恢复上浪费大量 turn
+- **或者拆成多个小 Task**：git push 一个 Task，远程部署一个 Task，写脚本一个 Task，各自独立
+- **Sonnet 适合单一环境内的简单实施**：不要让它跨环境、跨工具链做复杂编排
+
+**更新建议**：
+
+| 任务类型 | 推荐模型 | 理由 |
+|---------|---------|------|
+| DevOps/部署（多步骤） | **Opus** | 跨环境、错误恢复、全局规划 |
+| DevOps/部署（单步骤） | Sonnet | 单个 SSH 命令、单个配置修改 |

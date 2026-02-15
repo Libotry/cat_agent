@@ -25,3 +25,4 @@
 | 2025-02-14 | 记忆数据库选型 | 辩论 | SQLite + LanceDB 混合架构 | [查看](discussions/2025-02-14-memory-database.md) |
 | 2025-02-14 | 流程规则：禁止打包 + 强制记录 | 规则制定 | 不同维度拆开辩论 + 记录必须可见 | [查看](discussions/2025-02-14-process-rules.md) |
 | 2025-02-14 | 文档防丢失机制 | 规则制定 | 对话是临时的，文件是持久的 | [查看](discussions/2025-02-14-doc-persistence.md) |
+| 2026-02-14 | OpenClaw Plugin 代码放置方案 | 协作讨论 | 方案A（放在 bot_civ repo 子目录） | [查看](discussions/2026-02-14-openclaw-plugin-architecture.md) |
