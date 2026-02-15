@@ -60,7 +60,7 @@ class AgentRunner:
         self.model = model
         self.context: list[dict] = []  # 增量上下文
 
-    async def generate_reply(self, chat_history: list[dict]) -> str | None:
+    async def generate_reply(self, chat_history: list[dict]) -> tuple[str | None, dict | None]:
         """
         生成 Agent 回复。
         chat_history: [{"name": "Alice", "content": "xxx"}, ...]
@@ -89,7 +89,7 @@ class AgentRunner:
             resolved = resolve_model(self.model)
             if not resolved:
                 logger.warning("Model %s not configured or no API key", self.model)
-                return None
+                return None, None
 
             base_url, api_key, model_id = resolved
             client = AsyncOpenAI(api_key=api_key, base_url=base_url)
@@ -100,12 +100,16 @@ class AgentRunner:
                 max_tokens=800,
             )
             latency_ms = int((time.time() - start) * 1000)
+            usage_info = None
             if response.usage:
-                task = asyncio.create_task(_record_usage(
-                    model_id, self.agent_id, response.usage, latency_ms
-                ))
-                _background_tasks.add(task)
-                task.add_done_callback(_background_tasks.discard)
+                usage_info = {
+                    "model": model_id,
+                    "agent_id": self.agent_id,
+                    "prompt_tokens": response.usage.prompt_tokens or 0,
+                    "completion_tokens": response.usage.completion_tokens or 0,
+                    "total_tokens": response.usage.total_tokens or 0,
+                    "latency_ms": latency_ms,
+                }
             reply = response.choices[0].message.content
             # 某些推理模型把回复放在 reasoning 字段
             if not reply:
@@ -119,14 +123,14 @@ class AgentRunner:
                         if line.strip():
                             reply = line.strip()
                             break
-            logger.info("Agent %s generated reply: %s", self.name, reply[:100] if reply else None)
+            logger.info("Agent %s generated reply (len=%d)", self.name, len(reply) if reply else 0)
             if reply:
                 reply = reply.strip()
                 self.context.append({"name": self.name, "content": reply})
-            return reply
+            return reply, usage_info
         except Exception as e:
             logger.error("AgentRunner LLM call failed for %s: %s", self.name, e)
-            return None
+            return None, None
 
 
 class AgentRunnerManager:

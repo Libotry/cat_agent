@@ -1,4 +1,12 @@
 import asyncio
+import sys
+import os
+
+# Windows 下强制 UTF-8 输出，避免 GBK 编码错误
+if sys.platform == "win32":
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    os.environ.setdefault("PYTHONIOENCODING", "utf-8")
 
 from contextlib import asynccontextmanager
 from fastapi import FastAPI

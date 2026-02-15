@@ -1,7 +1,6 @@
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy import text, event
-from sqlalchemy.pool import NullPool
 from pathlib import Path
 from .config import settings
 
@@ -12,11 +11,21 @@ Path(settings.db_path).parent.mkdir(parents=True, exist_ok=True)
 engine = create_async_engine(
     f"sqlite+aiosqlite:///{settings.db_path}",
     echo=settings.debug,
-    poolclass=NullPool,  # 禁用连接池，每次创建新连接
-    connect_args={
-        "timeout": 30,
-    },
 )
+
+
+@event.listens_for(engine.sync_engine, "connect")
+def _set_sqlite_pragma(dbapi_connection, connection_record):
+    """启用 WAL 模式和 BEGIN IMMEDIATE"""
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA journal_mode=WAL")
+    cursor.execute("PRAGMA busy_timeout=30000")
+    cursor.execute("PRAGMA synchronous=NORMAL")
+    cursor.close()
+    # 设置为 IMMEDIATE 模式，所有事务都用 BEGIN IMMEDIATE
+    dbapi_connection.isolation_level = "IMMEDIATE"
+
+
 async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 
@@ -34,9 +43,6 @@ async def _migrate_bot_token(conn):
 
 async def init_db():
     async with engine.begin() as conn:
-        # 启用 WAL 模式以改善并发性能
-        await conn.execute(text("PRAGMA journal_mode=WAL"))
-        await conn.execute(text("PRAGMA busy_timeout=30000"))
         await conn.run_sync(Base.metadata.create_all)
         await _migrate_bot_token(conn)
 
