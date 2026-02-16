@@ -50,14 +50,62 @@ export interface WsNewMessage {
 export interface WsSystemEvent {
   type: 'system_event'
   data: {
-    event: 'agent_online' | 'agent_offline'
+    event: 'agent_online' | 'agent_offline' | 'checkin' | 'purchase'
     agent_id: number
     agent_name: string
     timestamp: string
+    job_title?: string
+    reward?: number
+    item_name?: string
+    price?: number
   }
 }
 
 export type WsIncoming = WsNewMessage | WsSystemEvent
+
+// 工作岗位
+export interface Job {
+  id: number
+  title: string
+  description: string
+  daily_reward: number
+  max_workers: number
+  today_workers: number
+}
+
+// 打卡结果
+export interface CheckInResult {
+  ok: boolean
+  reason: string
+  reward: number
+  checkin_id: number | null
+}
+
+// 虚拟商品
+export interface ShopItem {
+  id: number
+  name: string
+  description: string
+  item_type: 'avatar_frame' | 'title' | 'decoration'
+  price: number
+}
+
+// 购买结果
+export interface PurchaseResult {
+  ok: boolean
+  reason: string
+  item_name: string | null
+  price: number | null
+  remaining_credits: number | null
+}
+
+// Agent 拥有的物品
+export interface AgentItem {
+  item_id: number
+  name: string
+  item_type: string
+  purchased_at: string
+}
 
 // 悬赏任务
 export interface Bounty {

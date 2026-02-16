@@ -121,3 +121,63 @@ class BountyOut(BaseModel):
     claimed_by: Optional[int] = None
     created_at: datetime
     completed_at: Optional[datetime] = None
+
+
+# --- Job ---
+class JobOut(BaseModel):
+    model_config = {"from_attributes": True}
+    id: int
+    title: str
+    description: str
+    daily_reward: int
+    max_workers: int
+    today_workers: int = 0
+
+
+# --- CheckIn ---
+class CheckInRequest(BaseModel):
+    agent_id: int
+
+
+class CheckInOut(BaseModel):
+    checkin_id: int
+    job_id: int
+    reward: int
+    checked_at: str
+
+
+class CheckInResult(BaseModel):
+    ok: bool
+    reason: str
+    reward: int = 0
+    checkin_id: int | None = None
+
+
+# --- Shop ---
+class ItemOut(BaseModel):
+    model_config = {"from_attributes": True}
+    id: int
+    name: str
+    description: str
+    item_type: str
+    price: int
+
+
+class PurchaseRequest(BaseModel):
+    agent_id: int
+    item_id: int
+
+
+class PurchaseResult(BaseModel):
+    ok: bool
+    reason: str
+    item_name: str | None = None
+    price: int | None = None
+    remaining_credits: int | None = None
+
+
+class AgentItemOut(BaseModel):
+    item_id: int
+    name: str
+    item_type: str
+    purchased_at: str

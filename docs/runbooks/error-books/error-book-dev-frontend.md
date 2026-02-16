@@ -29,3 +29,15 @@
 - **场景**: 信用点徽章用固定金色 `#f0b232`，@提及 popup 的 active 状态用 `--channel-active`（暗色语义变量）
 - **根因**: 新增组件时只在一个主题下目测，没有切换主题验证
 - **修复**: 信用点用 `--credits-text` / `--credits-bg` 主题变量；popup active 改用 `--accent-subtle` / `--accent-primary`
+
+### DEV-10 useEffect 依赖放 render 中新建的数组/对象 → 无限循环
+
+❌ `const filtered = arr.filter(...)` 在 render 里算，然后放进 `useEffect([filtered])` — 每次 render 新引用 → 触发 effect → setState → 再 render
+✅ 用 `useMemo` 稳定引用，或用 `.length` 等原始值做依赖
+> 数组/对象每次 render 都是新引用。案例：M3 WorkPanel nonHumanAgents 无限循环。
+
+### DEV-11 用户反馈消息（成功/失败提示）没有自动清除
+
+❌ 操作成功后 `setMessage("成功")`，消息一直挂着直到下次操作
+✅ 设置消息后加 `setTimeout(() => setMessage(null), 3000)` 自动清除，cleanup 里 `clearTimeout`
+> 不清除 = 用户以为还在处理中，或误以为是新消息。

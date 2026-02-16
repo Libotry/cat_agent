@@ -10,10 +10,11 @@ import { InfoPanel } from './InfoPanel'
 import { ChatRoom } from '../pages/ChatRoom'
 import { AgentManager } from '../pages/AgentManager'
 import { BountyBoard } from '../pages/BountyBoard'
+import { WorkPanel } from '../pages/WorkPanel'
 
 const HUMAN_AGENT_ID = 0
 
-type View = 'chat' | 'agents' | 'bounties'
+type View = 'chat' | 'agents' | 'bounties' | 'work'
 
 export function DiscordLayout() {
   const [messages, setMessages] = useState<Message[]>([])
@@ -43,6 +44,10 @@ export function DiscordLayout() {
         else if (event === 'agent_offline') next.delete(agent_id)
         return next
       })
+      // 打卡/购买事件 → 刷新 agent 列表（credits 变化）
+      if (msg.data.event === 'checkin' || msg.data.event === 'purchase') {
+        fetchAgents().then(setAgents).catch(console.error)
+      }
     }
   }, [])
 
@@ -84,6 +89,8 @@ export function DiscordLayout() {
           />
         ) : view === 'agents' ? (
           <AgentManager />
+        ) : view === 'work' ? (
+          <WorkPanel agents={agents} onCreditsChange={() => fetchAgents().then(setAgents)} />
         ) : (
           <BountyBoard agents={agents} />
         )}

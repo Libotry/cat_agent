@@ -1,4 +1,7 @@
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Date, Text, JSON, ForeignKey, Enum, LargeBinary
+from sqlalchemy import (
+    Column, Integer, String, Float, Boolean, DateTime, Date, Text, JSON,
+    ForeignKey, Enum, LargeBinary, CheckConstraint, UniqueConstraint,
+)
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from ..core.database import Base
@@ -38,6 +41,10 @@ class Agent(Base):
 
     memories = relationship("Memory", back_populates="agent")
     messages = relationship("Message", back_populates="agent")
+
+    __table_args__ = (
+        CheckConstraint("credits >= 0", name="ck_agent_credits_non_negative"),
+    )
 
 
 # 聊天消息
@@ -120,3 +127,35 @@ class LLMUsage(Base):
     cost = Column(Float, default=0.0)
     latency_ms = Column(Integer, default=0)
     created_at = Column(DateTime, server_default=func.now())
+
+
+class ItemType(str, enum.Enum):
+    AVATAR_FRAME = "avatar_frame"
+    TITLE = "title"
+    DECORATION = "decoration"
+
+
+# 虚拟商品定义
+class VirtualItem(Base):
+    __tablename__ = "virtual_items"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(64), unique=True, nullable=False)
+    description = Column(Text, default="")
+    item_type = Column(String(16), nullable=False)  # avatar_frame / title / decoration
+    price = Column(Integer, nullable=False)
+    created_at = Column(DateTime, server_default=func.now())
+
+
+# Agent 物品库存
+class AgentItem(Base):
+    __tablename__ = "agent_items"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    agent_id = Column(Integer, ForeignKey("agents.id"), nullable=False)
+    item_id = Column(Integer, ForeignKey("virtual_items.id"), nullable=False)
+    purchased_at = Column(DateTime, server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("agent_id", "item_id", name="uq_agent_item"),
+    )

@@ -1,4 +1,4 @@
-type View = 'chat' | 'agents' | 'bounties'
+type View = 'chat' | 'agents' | 'bounties' | 'work'
 
 interface ChannelSidebarProps {
   serverName: string
@@ -30,6 +30,13 @@ export function ChannelSidebar({ serverName, activeChannel, onChannelSelect, vie
           </div>
         ))}
         <div className="channel-category">社区</div>
+        <div
+          className={`channel-item ${view === 'work' ? 'active' : ''}`}
+          onClick={() => onViewChange('work')}
+        >
+          <span className="channel-hash">$</span>
+          <span>城市经济</span>
+        </div>
         <div
           className={`channel-item ${view === 'bounties' ? 'active' : ''}`}
           onClick={() => onViewChange('bounties')}

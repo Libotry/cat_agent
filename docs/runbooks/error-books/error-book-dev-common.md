@@ -53,3 +53,27 @@
 1. UT（单元测试）: `pytest tests/` — mock 依赖，验证函数逻辑
 2. ST（系统测试）: 启动 uvicorn → curl/httpx 调用 API → 检查数据库/WebSocket 广播
 3. E2E（端到端测试）: 前后端联调，浏览器/Playwright 驱动完整用户流程
+
+### DEV-8 Write 工具调用缺少 content 参数反复失败
+
+❌ 长文档生成时犹豫，连续 4 次发空 Write 调用（无 content），每次等用户 Continue，浪费 4 轮 ~6 分钟
+✅ Write 无长度限制，一次性带完整 content 写入；第一次失败后立即修正，不重复同样错误
+> 工具调用失败后必须读错误信息、修正参数，不允许盲目重试同一调用。
+
+### DEV-9 AR 完成后跳过串讲直接编码
+
+❌ TDD-M3 完成后直接创建编码任务，跳过阶段 3/4/5（串讲 + 测试用例设计）
+✅ AR 完成后按 `development-workflow.md` 继续：正向串讲 → 反向串讲 → 测试用例设计 → 才能编码
+> CLAUDE.md 工作流原来只写到 AR 门控就断了，已补全完整链路（DEV-9 修复）。
+
+### DEV-10 E2E 测试 fixture 只 create_all 不先 drop_all → UNIQUE 冲突
+
+❌ `setup_db` 用 `Base.metadata.create_all` 但不先清理，生产 DB 已有数据时 seed 插入冲突
+✅ fixture 先 `drop_all` 再 `create_all`，保证每个测试从空表开始
+> 测试隔离是基本功。create_all 对已存在的表是 no-op，不会清数据。
+
+### DEV-11 前后端字段对齐靠目测 → 运行时才发现不匹配
+
+❌ 前端 types.ts 凭记忆写字段，不逐字段比对后端 schema
+✅ 写完 types.ts 后逐字段比对：字段名、类型、可选性、枚举值，列表格确认
+> 字段名差一个字母 = 运行时 undefined。M3 对齐验证 checklist：Job↔JobOut、ShopItem↔ItemOut、WsSystemEvent↔broadcast payload。

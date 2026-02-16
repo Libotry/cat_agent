@@ -58,3 +58,4 @@
 | 2026-02-15 | 文档改进（吸引力+清晰度） | 项目优化 | 添加截图/架构图/对比表格，新增 CODE_MAP.md 和 PROGRESS_FILES.md | [查看](discussions/2026-02-15-documentation-improvement.md) |
 | 2026-02-16 | 外部差评回应与改进评估 | 架构评审 | 40% 事实错误，30% 合理但不紧急，30% 真问题（定位+部署）；架构不变，改进对外沟通 | [查看](discussions/2026-02-16-external-criticism-review.md) |
 | 2026-02-16 | 去掉 LanceDB 向量数据库 | 架构讨论 | 全票通过方案 A（SQLite BLOB + NumPy 替换 LanceDB），保留语义搜索，去掉重依赖 | [查看](discussions/2026-02-16-remove-lancedb.md) |
+| 2026-02-16 | M2.2 前端组件库选型 | 五方讨论 | M2.2 纯 CSS 清理 + stylelint；M3 按需引入 Radix UI；M4 评估 Tailwind；shadcn/ui 否决 | — |

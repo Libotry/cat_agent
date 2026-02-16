@@ -143,6 +143,12 @@
 ✅ 关键分支失败时日志带上下文（谁、查什么、为什么失败），dev endpoint 加 `?debug=1` 返回中间状态
 > 静默失败是调试时间的最大放大器。案例：DEV-BUG-12，详见 [postmortem](../postmortems/postmortem-dev-bug-12.md)
 
+### COMMON-17 前后端新增功能后必须做对齐验证
+
+❌ 前端 types.ts / api.ts 写完就算完，不逐字段比对后端 schema 和 broadcast payload
+✅ 新增前后端联动功能后，必须做对齐 checklist：① types.ts 字段 ↔ schemas.py 逐字段比对 ② API 路径+method+body 比对 ③ WebSocket 事件 payload 比对
+> 前后端不对齐只会在运行时暴露，越晚发现修复成本越高。案例：M3 城市经济 6 个接口 + 2 个 WS 事件全量比对。
+
 ---
 角色专属错误追加到对应角色的错题本，格式：
 

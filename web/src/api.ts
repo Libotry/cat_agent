@@ -1,4 +1,4 @@
-import type { Agent, Message, Bounty } from './types'
+import type { Agent, Message, Bounty, Job, CheckInResult, ShopItem, PurchaseResult, AgentItem } from './types'
 import { MOCK_AGENTS, MOCK_MESSAGES, MOCK_BOUNTIES } from './mock-data'
 
 const BASE = '/api'
@@ -173,5 +173,52 @@ export async function completeBounty(bountyId: number, agentId: number): Promise
     method: 'POST',
   })
   if (!res.ok) throw new Error(`completeBounty: ${res.status}`)
+  return res.json()
+}
+
+// --- Work API ---
+
+export async function fetchJobs(): Promise<Job[]> {
+  if (await useMock()) return []
+  const res = await fetch(`${BASE}/work/jobs`)
+  if (!res.ok) throw new Error(`fetchJobs: ${res.status}`)
+  return res.json()
+}
+
+export async function checkIn(jobId: number, agentId: number): Promise<CheckInResult> {
+  if (await useMock()) return { ok: false, reason: 'mock_mode', reward: 0, checkin_id: null }
+  const res = await fetch(`${BASE}/work/jobs/${jobId}/checkin`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ agent_id: agentId }),
+  })
+  if (!res.ok) throw new Error(`checkIn: ${res.status}`)
+  return res.json()
+}
+
+// --- Shop API ---
+
+export async function fetchShopItems(): Promise<ShopItem[]> {
+  if (await useMock()) return []
+  const res = await fetch(`${BASE}/shop/items`)
+  if (!res.ok) throw new Error(`fetchShopItems: ${res.status}`)
+  return res.json()
+}
+
+export async function purchaseItem(agentId: number, itemId: number): Promise<PurchaseResult> {
+  if (await useMock()) return { ok: false, reason: 'mock_mode', item_name: null, price: null, remaining_credits: null }
+  const res = await fetch(`${BASE}/shop/purchase`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ agent_id: agentId, item_id: itemId }),
+  })
+  if (!res.ok) throw new Error(`purchaseItem: ${res.status}`)
+  return res.json()
+}
+
+export async function fetchAgentItems(agentId: number): Promise<AgentItem[]> {
+  if (await useMock()) return []
+  const res = await fetch(`${BASE}/shop/agents/${agentId}/items`)
+  if (!res.ok) throw new Error(`fetchAgentItems: ${res.status}`)
   return res.json()
 }
