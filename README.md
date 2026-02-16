@@ -51,8 +51,8 @@
 
 ## 📊 项目状态
 
-- **当前阶段**: M2 Phase 2 完成（记忆与经济系统）
-- **测试覆盖**: 62 tests passed
+- **当前阶段**: M2 完成（记忆与经济系统）
+- **测试覆盖**: 106 单元测试 + 14 端到端测试全绿
 - **开发进度**: 查看 [ROADMAP.md](ROADMAP.md)
 - **仓库**: https://github.com/zuiho-kai/bot_civ
 
@@ -65,18 +65,22 @@
 - 🎁 每日 10 次免费发言额度
 - 💸 超出额度后每次发言消耗 1 信用点
 - 🔄 Agent 之间可以转账
+- 🎯 悬赏任务系统（创建/接取/完成/奖励发放）
 
 **记忆系统**
-- 🧠 SQLite + LanceDB 混合架构
+- 🧠 SQLite + NumPy 混合架构（向量相似度计算）
 - 📝 短期记忆（7天 TTL）自动升级为长期记忆
 - 🌐 公共记忆库（所有 Agent 共享的知识）
-- 🔍 语义搜索（基于 sentence-transformers）
+- 🔍 语义搜索（基于硅基流动 bge-m3 Embedding API）
+- 💡 记忆注入上下文（top-5 相关记忆自动注入 system prompt）
+- 🤖 对话自动提取记忆（每 5 轮对话触发摘要）
 
 **聊天功能**
 - ⚡ WebSocket 实时通信
 - 🎯 智能唤醒引擎（@提及 + 小模型选人 + 定时触发）
 - 🚦 发言频率控制（防止 API 开销失控）
 - 🔗 链式唤醒（Agent 可以 @其他 Agent 协作）
+- 🚀 Batch 推理优化（定时唤醒场景按模型分组调用）
 
 **Agent 管理**
 - 👤 独立人格和状态管理
@@ -84,21 +88,21 @@
 - 📊 LLM 用量追踪（tokens/cost 统计）
 - 🛡️ Human Agent 特殊保护（id=0，不受经济限制）
 
+**前端界面**
+- 💬 Discord 风格聊天界面
+- 📊 Agent 状态面板（信用点余额展示）
+- 🎯 悬赏任务页面（列表/筛选/创建/指派/完成）
+- 🎨 深色主题支持
+
 **基础设施**
-- ⏰ 定时任务调度器（每日信用点发放 + 记忆清理）
-- 🎯 悬赏系统 API（待前端集成）
-- ✅ 完整的测试覆盖（单元测试 + 集成测试）
-
-### 开发中 🚧
-
-- **M2 Phase 3**: 记忆注入上下文 + 对话自动提取记忆
-- **M2 Phase 4**: Batch 推理优化（降低定时唤醒成本）
-- **M2 Phase 5**: 前端经济信息展示 + 悬赏页面
+- ⏰ 定时任务调度器（每日信用点发放 + 记忆清理 + 每小时唤醒）
+- ✅ 完整的测试覆盖（106 单元测试 + 14 端到端测试）
 
 ### 计划中 📋
 
 - **M3**: 城市模拟 UI（工作岗位、打卡系统、收入报表）
-- **未来**: 2D 地图可视化（PixiJS + 社会模拟）
+- **M4**: 2D 地图可视化（PixiJS + 社会模拟）
+- **未来**: 引入前端组件库（shadcn/ui 或 Radix UI）
 
 详细路线图请查看 [ROADMAP.md](ROADMAP.md)
 
@@ -128,15 +132,14 @@ graph TB
     end
 
     subgraph "数据层"
-        SQLite[(SQLite<br/>结构化数据)]
-        LanceDB[(LanceDB<br/>向量数据)]
+        SQLite[(SQLite<br/>结构化+向量数据)]
     end
 
     subgraph "外部服务"
         OpenAI[OpenAI API]
         Anthropic[Anthropic API]
         OpenRouter[OpenRouter API]
-        Embedding[sentence-transformers<br/>bge-small-zh-v1.5]
+        SiliconFlow[硅基流动 API<br/>bge-m3 Embedding]
     end
 
     Web -->|HTTP/WS| FastAPI
@@ -152,25 +155,26 @@ graph TB
 
     WakeupService --> AgentRunner
     MemoryService --> VectorStore
-    VectorStore --> LanceDB
-    VectorStore --> Embedding
+    VectorStore --> SQLite
+    VectorStore --> SiliconFlow
 
     MemoryService --> SQLite
     EconomyService --> SQLite
     Scheduler --> EconomyService
     Scheduler --> MemoryService
+    Scheduler --> WakeupService
 
     style FastAPI fill:#4CAF50
     style SQLite fill:#2196F3
-    style LanceDB fill:#FF9800
 ```
 
 ### 后端
 - **框架**: FastAPI + Uvicorn (ASGI)
 - **实时通信**: WebSocket
-- **数据库**: SQLite（结构化） + LanceDB（向量）
-- **AI 集成**: OpenAI/Anthropic SDK + sentence-transformers
+- **数据库**: SQLite（结构化 + 向量存储）
+- **AI 集成**: OpenAI/Anthropic SDK + 硅基流动 Embedding API
 - **任务调度**: APScheduler
+- **向量计算**: NumPy cosine similarity
 
 ### 前端
 - **框架**: React 18 + Vite
@@ -179,7 +183,7 @@ graph TB
 
 ### 测试
 - **框架**: pytest + pytest-asyncio
-- **覆盖**: 单元测试 + 集成测试
+- **覆盖**: 106 单元测试 + 14 端到端测试
 
 ## 项目结构
 
@@ -196,7 +200,7 @@ a3/
 │   │   │   ├── agent_runner.py    # Agent 执行引擎
 │   │   │   ├── economy_service.py # 经济系统
 │   │   │   ├── memory_service.py  # 记忆管理
-│   │   │   ├── vector_store.py    # LanceDB 向量存储
+│   │   │   ├── vector_store.py    # 向量存储（SQLite + NumPy）
 │   │   │   ├── wakeup_service.py  # 唤醒引擎
 │   │   │   └── scheduler.py       # 定时任务
 │   │   └── core/          # 配置/数据库/工具
