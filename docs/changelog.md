@@ -41,6 +41,34 @@
   - CLAUDE.md 索引更新，删除旧 error-book.md
 - **原则**: 角色专属错误归各自错题本，跨角色通用错误留 common-mistakes.md
 
+### 2026-02-16 [功能] M2 Phase 3 完成
+- 记忆注入上下文（agent_runner.py top-5 记忆注入 system prompt）
+- 对话提取记忆（chat.py 每 5 条回复触发摘要提取）
+- 悬赏任务 API
+- 4 轮 code review，P0/P1 归零，92/92 测试全绿
+- 经验沉淀：DEV-6（影响面分析）、COMMON-10（局部修复思维）
+
+### 2026-02-16 [重构] 去 LanceDB
+- LanceDB + sentence-transformers → SQLite BLOB + NumPy cosine similarity + 硅基流动 bge-m3 API
+- 改动 8 文件，删除 server/data/lancedb/，10 个相关测试全绿
+
+### 2026-02-16 [功能] M2 Phase 2 完成
+- 记忆服务 + 发言扣费 + 定时任务，62 tests passed
+- 🚨 DEV-BUG-7 SQLite 并发死锁经验沉淀（COMMON-8/9，各角色错题本追加）
+
+### 2026-02-15 [文档] 项目吸引力增强
+- README 添加截图、架构图、项目对比表格
+- 新增 CODE_MAP.md、PROGRESS_FILES.md
+- 吸引力 6.5/10 → 8/10
+
+### 2026-02-15 [功能] M2 Phase 1 完成
+- 向量存储 + 经济服务 + LLM 用量追踪 + 频率控制
+- MaiBot 竞品分析，纳入 3 项特性
+
+### 2026-02-14 [功能] M1.5 完成
+- OpenClaw Plugin 接入（TypeScript channel plugin，~300 行）
+- 放置在 openclaw-plugin/ 子目录
+
 ### 2026-02-14 [Bug溯源] DEV-BUG-5 @提及唤醒要求 Agent 有 WebSocket 连接
 - **背景**: 人类 @Agent 发消息后无回复，唤醒引擎静默跳过。根因是唤醒服务的"在线"概念与方案G的 Agent 存在方式不一致
 - **溯源结论**: 跨模块语义不一致——方案G 改变了 Agent 的存在方式，但唤醒服务的候选池来源没有同步更新

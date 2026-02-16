@@ -1,65 +1,39 @@
 # 项目进展
 
 > 细节进展 → `server/progress.md` / `web/progress.md`
-
-## 最近活动
-
-### 2026-02-15
-- 文档改进：基于"路过开发者"评估，增强项目吸引力
-  - README 添加截图、架构图、项目对比表格
-  - 新增 docs/CODE_MAP.md（代码导航地图）
-  - 新增 docs/PROGRESS_FILES.md（进度文件职责说明）
-  - 整体吸引力从 6.5/10 提升至 8/10
-
-### 2026-02-16
-- M2 Phase 2 完成（记忆服务+发言扣费+定时任务）
-- 62 tests passed
-- 文档重构：README/ROADMAP/CONTRIBUTING 增强吸引力
-- 🚨 全链路漏检经验沉淀：DEV-BUG-7 SQLite 并发死锁（200刀教训）
-  - 新增 COMMON-8（技术选型隐含约束全链路看护）、COMMON-9（三步止血规则）
-  - 各角色错题本追加专属条目：DEBATE-5 / QA-5 / PM-5 / REC-6
-
-### 2026-02-15
-- M2 Phase 1 完成（向量存储+经济服务+用量追踪+频率控制）
-- MaiBot 竞品分析，纳入 3 项特性到 M2
-
-### 2026-02-14
-- M1.5 完成：OpenClaw Plugin 接入（TypeScript channel plugin）
-- Plugin 放置在 `openclaw-plugin/` 子目录（与 bot_civ 强耦合）
+> 历史变更 → `docs/changelog.md`
 
 ## 当前状态
 
-- **阶段**: M2 Phase 2 完成，Phase 3 待开始
-- **技术栈**: FastAPI + WebSocket | React + Vite | SQLite + LanceDB
+- **阶段**: M2 Phase 3 完成，Phase 4（Batch 推理优化）待开始
+- **技术栈**: FastAPI + WebSocket | React + Vite | SQLite + NumPy + 硅基流动 Embedding API
 - **仓库**: https://github.com/zuiho-kai/bot_civ
+- **测试**: 92/92 全绿
+
+## 最近活动
+
+### 2026-02-16
+- M2 Phase 3 完成：记忆注入上下文 + 对话提取记忆 + 悬赏 API
+- 去 LanceDB 重构：SQLite BLOB + NumPy cosine similarity + 硅基流动 bge-m3
+- 经验沉淀：DEV-6（影响面分析）、COMMON-10（局部修复思维）
 
 ## M2 进度（15 任务，6 Phase）
 
-**Phase 1 ✅**: LanceDB 向量存储 + 经济服务 + LLM 用量追踪 + 频率控制
-**Phase 2 ✅**: 记忆读写服务 + 发言扣费 + 每日发放定时任务
-**Phase 3 待开始**: 记忆注入上下文 + 对话提取记忆 + 悬赏 API
-**Phase 4**: Batch 推理优化
-**Phase 5**: 前端经济信息 + 悬赏页面
-**Phase 6**: 端到端验证
+- Phase 1-3 ✅ 已完成
+- **Phase 4 待开始**: Batch 推理优化
+- Phase 5: 前端经济信息 + 悬赏页面
+- Phase 6: 端到端验证
+- 详细拆解 → `docs/specs/SPEC-001-聊天功能/TDD-M2-记忆与经济.md`
 
-详细任务拆解见 `docs/specs/SPEC-001-聊天功能/TDD-M2-记忆与经济.md`
-
-## 历史里程碑
+## 里程碑
 
 - M1 ✅: Agent CRUD + WebSocket 聊天 + 唤醒引擎 + LLM 集成
-- M1.5 ✅: OpenClaw Plugin 接入（TypeScript channel plugin，约 300 行代码）
+- M1.5 ✅: OpenClaw Plugin（TypeScript，openclaw-plugin/ 子目录）
+- M2 🔧: 记忆与经济系统
 - M3 待定: 城市模拟 UI
 
 ## 项目组成
 
-### 核心服务
 - **server/**: FastAPI 后端（Python）
 - **web/**: React 前端（TypeScript）
-- **openclaw-plugin/**: OpenClaw channel plugin（TypeScript）
-
-### OpenClaw Plugin 说明
-- **作用**: 让 OpenClaw 作为 bot_civ 的原生 channel 接入
-- **架构**: 6 个文件，约 300 行 TypeScript
-- **安装**: `openclaw plugins link /path/to/bot_civ/openclaw-plugin`
-- **设计决策**: 放在 bot_civ repo 子目录（与 WebSocket 协议强耦合，零版本同步成本）
-- **详细讨论**: `docs/discussions/2026-02-14-openclaw-plugin-architecture.md`
+- **openclaw-plugin/**: OpenClaw channel plugin（TypeScript，~300 行）
