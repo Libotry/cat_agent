@@ -33,6 +33,14 @@ MOCK_DECISIONS_MIXED = json.dumps([
 
 MOCK_DECISIONS_INVALID_JSON = "not valid json at all"
 
+MOCK_DECISIONS_CHAT = json.dumps([
+    {"agent_id": 1, "action": "chat", "params": {}, "reason": "想和大家聊聊天"},
+])
+
+MOCK_DECISIONS_CHECKIN_AGAIN = json.dumps([
+    {"agent_id": 1, "action": "checkin", "params": {}, "reason": "再去打个卡"},
+])
+
 
 def _mock_llm(reply_text: str):
     """返回 resolve_model + AsyncOpenAI 的 patch，使 LLM 返回指定文本。"""
@@ -211,3 +219,70 @@ async def test_e2e_autonomy_purchase_insufficient(client: AsyncClient):
     # 无物品
     r = await client.get("/api/shop/agents/1/items")
     assert r.json() == []
+
+
+# ---------- E8: autonomy tick — chat 决策 → Agent 发言出现在聊天区 (AC-M4-04) ----------
+
+async def test_e2e_autonomy_chat(client: AsyncClient):
+    # 给 Alice 足够 credits + 重置 quota
+    async with async_session() as db:
+        agent = await db.get(Agent, 1)
+        agent.credits = 100
+        agent.quota_used_today = 0
+        await db.commit()
+
+    # mock autonomy LLM（decide 阶段）
+    p_resolve, p_openai = _mock_llm(MOCK_DECISIONS_CHAT)
+
+    # mock batch_generate（chat 执行阶段，返回 Agent 的发言内容）
+    mock_batch_result = {
+        1: ("大家好，今天天气不错！", {
+            "model": "test-model",
+            "agent_id": 1,
+            "prompt_tokens": 50,
+            "completion_tokens": 10,
+            "total_tokens": 60,
+            "latency_ms": 100,
+        })
+    }
+
+    with p_resolve, p_openai, \
+         patch("app.services.autonomy_service.runner_manager") as mock_runner:
+        mock_runner.batch_generate = AsyncMock(return_value=mock_batch_result)
+        r = await client.post("/api/dev/trigger-autonomy")
+        assert r.status_code == 200
+
+    # 等待异步聊天发送完成（_delayed_chat_send 有 3-20s 延迟）
+    import asyncio
+    await asyncio.sleep(1)  # mock 环境下 sleep 被跳过，但给 event loop 一个 tick
+
+    # 验证消息出现在聊天记录
+    r = await client.get("/api/messages?limit=5")
+    assert r.status_code == 200
+    messages = r.json()
+    agent_msgs = [m for m in messages if m["agent_id"] == 1 and m["sender_type"] == "agent"]
+    assert len(agent_msgs) >= 1, f"Expected Alice chat message, got {messages}"
+
+
+# ---------- E9: autonomy tick — 重复打卡 → 静默跳过 (AC-M4-06) ----------
+
+async def test_e2e_autonomy_duplicate_checkin(client: AsyncClient):
+    # 第一次 tick：Alice 打卡成功
+    p_resolve, p_openai = _mock_llm(MOCK_DECISIONS_CHECKIN)
+    with p_resolve, p_openai:
+        r = await client.post("/api/dev/trigger-autonomy")
+        assert r.status_code == 200
+
+    # 验证打卡成功
+    r = await client.get("/api/agents/1")
+    assert r.json()["credits"] == 10
+
+    # 第二次 tick：Alice 再次打卡 → 应该静默跳过（今日已打卡）
+    p_resolve2, p_openai2 = _mock_llm(MOCK_DECISIONS_CHECKIN_AGAIN)
+    with p_resolve2, p_openai2:
+        r = await client.post("/api/dev/trigger-autonomy")
+        assert r.status_code == 200
+
+    # credits 不应该再增加
+    r = await client.get("/api/agents/1")
+    assert r.json()["credits"] == 10  # 仍然是 10，没有变成 20
