@@ -124,3 +124,28 @@
 8. 时间相关 UI 考虑"用户停留 30 分钟后"的表现
 
 > 根因：只关注"功能正确"忽略"模式一致"和"文档一致"。详见 [postmortem-dev-bug-11.md](../postmortems/postmortem-dev-bug-11.md)
+
+### DEV-15 写了 E2E 脚本不当场跑 → 假绿交差
+
+❌ 写了 `e2e_m4.py`（真实 LLM E2E 脚本），没启动服务器跑一遍就 commit + push，声称"E2E 完成"
+❌ `test_e2e_autonomy.py` 全部 mock LLM，本质是集成测试，却标记为"E2E 9/9 passed"
+❌ 真正启动服务器后发现：端点 404（旧代码）、Agent 为空（无 seed）、LLM 全返回 rest（prompt/模型问题）
+✅ E2E 脚本写完必须当场启动服务器跑一遍，看到真实 LLM 响应才算验证
+✅ mock 测试明确标记为"集成测试"，不混淆为 E2E
+✅ 真实 E2E 脚本必须包含 seed 逻辑（创建 Agent/Job/Item），不依赖外部手动准备
+
+**E2E 验证必做清单**:
+1. 启动真实服务器（确认最新代码，清 pycache）
+2. 确认数据 seed（Agent/Job/Item 存在）
+3. 确认外部依赖可达（LLM API + 代理）
+4. 跑脚本看到真实 LLM 响应（不是 mock）
+5. 验证状态变化（DB credits 变了、WebSocket 收到事件）
+6. 以上全通过后才能 commit 并声称"E2E 通过"
+
+> 根因：被 mock 测试的绿色结果蒙蔽，把"写了脚本"等同于"验证通过"。DEV-7 说过 UT≠ST，这次是 mock≠E2E 的同类错误。
+
+### DEV-16 调研任务串行搜索 → 浪费时间，违反 CLAUDE.md 并行规则
+
+❌ 调研"无人值守开发模式"时，把 4 个独立子主题（质量保障、并行开发、调度机制、架构对比）塞进 1 个 subagent 串行搜索
+✅ 搜索关键词超过 2 组时，拆成多个并行 Task agent 分头搜索，最后汇总
+> CLAUDE.md 第 72 行明确规定"调研/搜索任务必须并行"。根因：把调研看成"一个问题"没做任务分解。判断标准：搜索关键词 ≥ 2 组 → 拆并行 agent。

@@ -83,11 +83,11 @@ MODEL_REGISTRY: dict[str, ModelEntry] = {
             ModelProvider(name="openrouter", model_id="stepfun/step-3.5-flash:free"),
         ],
     ),
-    # 唤醒选人用的小模型
+    # 唤醒选人用的小模型（非推理模型，确保 content 字段有 JSON）
     "wakeup-model": ModelEntry(
         display_name="Wakeup Selector (小模型)",
         providers=[
-            ModelProvider(name="openrouter", model_id="stepfun/step-3.5-flash:free"),
+            ModelProvider(name="openrouter", model_id="google/gemma-3-12b-it:free"),
         ],
     ),
 }

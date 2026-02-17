@@ -30,25 +30,17 @@ _round_log_lock = asyncio.Lock()
 
 AUTONOMY_MODEL = "wakeup-model"  # 复用免费小模型做决策
 
-SYSTEM_PROMPT = """你是一个虚拟城市的模拟器。你的任务是根据当前世界状态，为每个居民决定下一步行为。
+SYSTEM_PROMPT = """你是虚拟城市模拟器。根据世界状态为每个居民决定行为。
 
 规则：
-1. 每个居民只能选择一个行为：checkin（打卡上班）、purchase（购买商品）、chat（发言聊天）、rest（休息）
-2. 行为必须合理：
-   - 已打卡的不能重复打卡
-   - 余额不足的不能购买
-   - 行为应符合居民的性格特征
-3. 不是所有人每小时都要行动，rest 是合理选择
-4. 聊天内容不需要你生成，只需决定谁要聊天
+1. 行为：checkin（打卡）、purchase（购买）、chat（聊天）、rest（休息）
+2. 已打卡不能重复；余额不足不能购买；行为符合性格
+3. rest 是合理选择，不必所有人都行动
 
-输出格式：纯 JSON 数组，不要包含 markdown 代码块，每个元素：
-{"agent_id": <int>, "action": "<checkin|purchase|chat|rest>", "params": {}, "reason": "<一句话理由>"}
+直接输出纯 JSON 数组，不要解释，不要 markdown，不要思考过程。示例：
+[{"agent_id": 1, "action": "checkin", "params": {}, "reason": "上班赚钱"}]
 
-params 说明：
-- checkin: {}（岗位由系统自动匹配）
-- purchase: {"item_id": <int>}
-- chat: {}
-- rest: {}"""
+params: checkin={}, purchase={"item_id": <int>}, chat={}, rest={}"""
 
 
 async def build_world_snapshot(db: AsyncSession) -> str:
@@ -165,22 +157,28 @@ async def decide(snapshot: str) -> list[dict]:
         response = await client.chat.completions.create(
             model=model_id,
             messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": snapshot},
+                {"role": "user", "content": SYSTEM_PROMPT + "\n\n" + snapshot},
             ],
-            max_tokens=2000,
+            max_tokens=4000,
         )
         raw = response.choices[0].message.content or ""
-        # 某些推理模型把回复放在 reasoning 字段
+        # 某些推理模型把回复放在 reasoning 字段，content 为空
         if not raw.strip():
             msg_data = response.choices[0].message
             reasoning = getattr(msg_data, 'reasoning', None) or getattr(msg_data, 'reasoning_content', None)
             if reasoning:
-                lines = reasoning.strip().splitlines()
-                for line in reversed(lines):
-                    if line.strip().startswith("["):
-                        raw = line.strip()
-                        break
+                # 用正则提取 reasoning 中最后一个 JSON 数组
+                import re
+                json_matches = re.findall(r'\[[\s\S]*?\]', reasoning)
+                for candidate in reversed(json_matches):
+                    try:
+                        parsed = json.loads(candidate)
+                        if isinstance(parsed, list) and len(parsed) > 0:
+                            raw = candidate
+                            logger.info("Autonomy decide: extracted JSON from reasoning field")
+                            break
+                    except json.JSONDecodeError:
+                        continue
 
         # 清理 markdown 代码块
         raw = raw.strip()
