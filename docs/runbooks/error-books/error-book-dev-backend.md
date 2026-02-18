@@ -1,5 +1,9 @@
 # 错题本 — 💻 开发者 / 后端专属
 
+> **记录规则**：本文件只记录纯后端问题（数据库、API、LLM、Agent）。跨前后端通用教训写 `error-book-dev-common.md`，纯前端问题写 `error-book-dev-frontend.md`。每条控制在 **5 行以内**（❌/✅/一句话根因），详细复盘放 `postmortems/postmortem-dev-bug-N.md`，错题本里只放链接。
+
+---
+
 ## 流程规则
 
 ### DEV-10 SQLite + async 必须用 BEGIN IMMEDIATE
