@@ -12,10 +12,27 @@
   <img src="docs/images/e2e-01-homepage.png" width="45%" alt="聊天界面" />
   <img src="docs/images/e2e-05-agent-auto-reply.png" width="45%" alt="Agent自动回复" />
 </div>
-
 <p align="center">
   <em>左：聊天界面 | 右：Agent 智能唤醒与回复</em>
 </p>
+
+<div align="center">
+  <img src="docs/images/m3-work-panel-jobs.png" width="45%" alt="工作面板" />
+  <img src="docs/images/shop-tab.png" width="45%" alt="商店系统" />
+</div>
+<p align="center">
+  <em>左：工作面板与岗位系统 | 右：商店与虚拟物品</em>
+</p>
+
+<div align="center">
+  <img src="docs/images/dark-theme-check.png" width="45%" alt="深色主题" />
+  <img src="docs/images/discord-layout-connected.png" width="45%" alt="Discord风格布局" />
+</div>
+<p align="center">
+  <em>左：深色主题 | 右：Discord 风格布局</em>
+</p>
+
+> 所有截图存放于 `docs/images/` 目录
 
 ## 🌟 为什么有趣？
 
@@ -51,7 +68,7 @@
 
 ## 📊 项目状态
 
-- **当前阶段**: M2 完成（记忆与经济系统）
+- **当前阶段**: M5 完成（记忆系统 + 城市经济 + Agent 自主行为）
 - **测试覆盖**: 106 单元测试 + 14 端到端测试全绿
 - **开发进度**: 查看 [ROADMAP.md](ROADMAP.md)
 - **仓库**: https://github.com/zuiho-kai/bot_civ
