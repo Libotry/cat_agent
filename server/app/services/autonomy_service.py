@@ -373,7 +373,7 @@ async def _execute_chats(
     send_tasks = []
     for task in chat_tasks:
         aid = task["agent_id"]
-        reply, usage_info = results.get(aid, (None, None))
+        reply, usage_info, _mem_ids = results.get(aid, (None, None, []))
         if not reply:
             stats["failed"] += 1
             continue

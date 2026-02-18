@@ -10,6 +10,8 @@ export interface Agent {
   daily_free_quota: number
   quota_used_today: number
   activity?: string
+  satiety: number
+  mood: number
 }
 
 export interface Channel {
@@ -51,7 +53,7 @@ export interface WsSystemEvent {
     reward?: number
     item_name?: string
     price?: number
-    action?: 'checkin' | 'purchase' | 'chat' | 'rest'
+    action?: 'checkin' | 'purchase' | 'chat' | 'rest' | 'farm_work' | 'mill_work' | 'eat'
     reason?: string
   }
 }
@@ -112,4 +114,85 @@ export interface Bounty {
   claimed_by: number | null
   created_at: string
   completed_at: string | null
+}
+
+// 记忆系统
+export interface Memory {
+  id: number
+  agent_id: number
+  memory_type: 'short' | 'long' | 'public'
+  content: string
+  access_count: number
+  expires_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface MemoryStats {
+  short_count: number
+  long_count: number
+  public_count: number
+  total_access_count: number
+}
+
+export interface MemoryListResponse {
+  items: Memory[]
+  total: number
+}
+
+// 城市系统
+export interface CityResource {
+  resource_type: string
+  quantity: number
+}
+
+export interface WorkerInfo {
+  agent_id: number
+  agent_name: string
+  assigned_at: string
+}
+
+export interface Building {
+  id: number
+  name: string
+  building_type: string
+  description: string
+  owner: string
+  max_workers: number
+  workers: WorkerInfo[]
+}
+
+export interface CityAgentStatus {
+  id: number
+  name: string
+  satiety: number
+  mood: number
+}
+
+export interface CityOverview {
+  resources: CityResource[]
+  buildings: Building[]
+  agents: CityAgentStatus[]
+}
+
+export interface ProductionLog {
+  id: number
+  building_id: number
+  input_type: string | null
+  input_qty: number
+  output_type: string
+  output_qty: number
+  tick_time: string
+}
+
+export interface WorkerResult {
+  ok: boolean
+  reason: string
+}
+
+export interface EatResult {
+  ok: boolean
+  reason: string
+  satiety: number
+  mood: number
 }

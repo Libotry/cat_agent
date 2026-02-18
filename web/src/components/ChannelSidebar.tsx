@@ -1,4 +1,4 @@
-type View = 'chat' | 'agents' | 'bounties' | 'work'
+type View = 'chat' | 'agents' | 'bounties' | 'work' | 'city' | 'memory-admin'
 
 interface ChannelSidebarProps {
   serverName: string
@@ -43,6 +43,21 @@ export function ChannelSidebar({ serverName, activeChannel, onChannelSelect, vie
         >
           <span className="channel-hash">!</span>
           <span>悬赏任务</span>
+        </div>
+        <div
+          className={`channel-item ${view === 'city' ? 'active' : ''}`}
+          onClick={() => onViewChange('city')}
+        >
+          <span className="channel-hash">#</span>
+          <span>长安城</span>
+        </div>
+        <div className="channel-category">管理</div>
+        <div
+          className={`channel-item ${view === 'memory-admin' ? 'active' : ''}`}
+          onClick={() => onViewChange('memory-admin')}
+        >
+          <span className="channel-hash">#</span>
+          <span>记忆面板</span>
         </div>
       </div>
     </div>

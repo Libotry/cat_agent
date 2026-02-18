@@ -43,11 +43,12 @@ class AgentRunner:
 
     async def generate_reply(
         self, chat_history: list[dict], db: AsyncSession | None = None
-    ) -> tuple[str | None, dict | None]:
+    ) -> tuple[str | None, dict | None, list[int]]:
         """
         生成 Agent 回复。
         chat_history: [{"name": "Alice", "content": "xxx"}, ...]
         db: 传入时启用记忆注入
+        返回: (reply, usage_info, used_memory_ids)
         """
         # 使用 chat_history 作为上下文（已从 DB 查询最新历史）
         context = list(chat_history)
@@ -59,6 +60,7 @@ class AgentRunner:
         )
 
         # M2-3: 记忆注入
+        used_memory_ids: list[int] = []
         if db is not None:
             try:
                 recent_text = " ".join(
@@ -68,6 +70,7 @@ class AgentRunner:
                     self.agent_id, recent_text, top_k=5, db=db
                 )
                 if memories:
+                    used_memory_ids = [m.id for m in memories]
                     personal = [m for m in memories if m.memory_type in (MemoryType.SHORT, MemoryType.LONG)]
                     public = [m for m in memories if m.memory_type == MemoryType.PUBLIC]
                     mem_block = ""
@@ -99,7 +102,7 @@ class AgentRunner:
             resolved = resolve_model(self.model)
             if not resolved:
                 logger.warning("Model %s not configured or no API key", self.model)
-                return None, None
+                return None, None, []
 
             base_url, api_key, model_id = resolved
             client = AsyncOpenAI(api_key=api_key, base_url=base_url)
@@ -136,10 +139,10 @@ class AgentRunner:
             logger.info("Agent %s generated reply (len=%d)", self.name, len(reply) if reply else 0)
             if reply:
                 reply = reply.strip()
-            return reply, usage_info
+            return reply, usage_info, used_memory_ids
         except Exception as e:
             logger.error("AgentRunner LLM call failed for %s: %s", self.name, e)
-            return None, None
+            return None, None, []
 
 
 class AgentRunnerManager:
@@ -161,11 +164,11 @@ class AgentRunnerManager:
     async def batch_generate(
         self,
         agents_info: list[dict],
-    ) -> dict[int, tuple[str | None, dict | None]]:
+    ) -> dict[int, tuple[str | None, dict | None, list[int]]]:
         """
         按模型分组并发调用 LLM。
         agents_info: [{"agent_id", "agent_name", "persona", "model", "history"}, ...]
-        返回 {agent_id: (reply, usage_info)}
+        返回 {agent_id: (reply, usage_info, used_memory_ids)}
         每个协程内部创建独立的 AsyncSession，避免并发共享。
         """
         import asyncio
@@ -183,7 +186,7 @@ class AgentRunnerManager:
             )
 
         # 2. 按模型分组并发调用（每个协程独立 session）
-        results: dict[int, tuple[str | None, dict | None]] = {}
+        results: dict[int, tuple[str | None, dict | None, list[int]]] = {}
 
         async def _call_one(agent_id, runner, history):
             try:
@@ -191,7 +194,7 @@ class AgentRunnerManager:
                     return agent_id, await runner.generate_reply(history, db=db)
             except Exception as e:
                 logger.error("Batch generate failed for agent %d: %s", agent_id, e)
-                return agent_id, (None, None)
+                return agent_id, (None, None, [])
 
         tasks = []
         for group in prompts_by_model.values():

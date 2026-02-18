@@ -1,0 +1,467 @@
+.city-panel {
+  padding: 24px;
+  max-width: 800px;
+  margin: 0 auto;
+  background: var(--surface-chat);
+  min-height: 100%;
+  overflow-y: auto;
+}
+
+.cp-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.cp-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-heading);
+}
+
+.cp-back-btn {
+  padding: 6px 14px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.cp-back-btn:hover {
+  background: var(--accent-subtle);
+}
+
+/* 资源 */
+.cp-resources {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.cp-resource-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  min-width: 100px;
+}
+
+.cp-resource-icon {
+  font-size: 1.3rem;
+}
+
+.cp-resource-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.cp-resource-name {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.cp-resource-qty {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-heading);
+}
+
+/* 区块标题 */
+.cp-section-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 16px 0 8px;
+}
+
+/* 建筑网格 */
+.cp-building-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.cp-building-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.cp-building-card:hover {
+  background: var(--accent-subtle);
+  border-color: var(--accent-primary);
+}
+
+.cp-building-icon {
+  font-size: 1.8rem;
+  margin-bottom: 6px;
+}
+
+.cp-building-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-heading);
+}
+
+.cp-building-workers {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+/* 居民列表 */
+.cp-agent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cp-agent-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.cp-agent-row:hover {
+  background: var(--accent-subtle);
+}
+
+.cp-agent-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-heading);
+  min-width: 60px;
+}
+
+.cp-agent-bars {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cp-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cp-bar-label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  min-width: 28px;
+}
+
+.cp-bar-track {
+  flex: 1;
+  height: 8px;
+  background: var(--bg-input);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.cp-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s;
+}
+
+.cp-bar-fill.green { background: #23a559; }
+.cp-bar-fill.yellow { background: #f0b232; }
+.cp-bar-fill.red { background: #ed4245; }
+
+.cp-bar-value {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  min-width: 24px;
+  text-align: right;
+}
+
+/* 建筑详情 */
+.cp-building-info {
+  padding: 16px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  margin-bottom: 16px;
+}
+
+.cp-building-info h3 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  color: var(--text-heading);
+}
+
+.cp-building-desc {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+}
+
+.cp-building-meta {
+  display: flex;
+  gap: 16px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* 工人 */
+.cp-workers-section {
+  margin-bottom: 16px;
+}
+
+.cp-worker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cp-worker-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.cp-worker-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-heading);
+}
+
+.cp-worker-time {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  flex: 1;
+}
+
+.cp-remove-btn {
+  padding: 4px 10px;
+  border: 1px solid #ed4245;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: #ed4245;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.cp-remove-btn:hover {
+  background: rgba(237, 66, 69, 0.1);
+}
+
+.cp-empty-slot {
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-md);
+  text-align: center;
+}
+
+.cp-assign-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.cp-assign-row select {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+}
+
+.cp-assign-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--accent-primary);
+  color: #fff;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.cp-assign-btn:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.cp-assign-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.cp-message {
+  margin-top: 8px;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  font-size: 0.8rem;
+}
+
+.cp-message.success {
+  background: rgba(35, 165, 89, 0.1);
+  color: #23a559;
+}
+
+.cp-message.error {
+  background: rgba(237, 66, 69, 0.1);
+  color: #ed4245;
+}
+
+/* 生产信息 */
+.cp-production-info {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  padding: 10px 14px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  margin-bottom: 16px;
+}
+
+/* 日志 */
+.cp-log-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cp-log-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+}
+
+.cp-log-time {
+  color: var(--text-muted);
+  min-width: 50px;
+}
+
+.cp-log-output {
+  color: #23a559;
+  font-weight: 600;
+}
+
+/* Agent 详情 */
+.cp-agent-detail {
+  padding: 20px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.cp-agent-detail h3 {
+  margin: 0 0 16px;
+  font-size: 1.1rem;
+  color: var(--text-heading);
+}
+
+.cp-status-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.cp-status-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cp-status-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  min-width: 50px;
+}
+
+.cp-status-track {
+  flex: 1;
+  height: 12px;
+  background: var(--bg-input);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.cp-status-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.3s;
+}
+
+.cp-status-fill.green { background: #23a559; }
+.cp-status-fill.yellow { background: #f0b232; }
+.cp-status-fill.red { background: #ed4245; }
+
+.cp-status-value {
+  font-size: 0.85rem;
+  color: var(--text-heading);
+  font-weight: 600;
+  min-width: 30px;
+  text-align: right;
+}
+
+.cp-agent-work {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+}
+
+.cp-eat-btn {
+  padding: 8px 20px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: #23a559;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.cp-eat-btn:hover:not(:disabled) {
+  background: #1a8a46;
+}
+
+.cp-eat-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

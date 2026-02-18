@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 from ..core import get_db, async_session
-from ..models import Message, Agent
+from ..models import Message, Agent, MemoryReference
 from ..services.wakeup_service import WakeupService
 from ..services.agent_runner import runner_manager
 from ..services.economy_service import economy_service
@@ -59,13 +59,13 @@ async def _extract_memory(agent_id: int, recent_messages: list[dict]):
         logger.warning("Memory extraction failed for agent %d: %s", agent_id, e)
 
 
-async def delayed_send(agent_info: dict, reply: str, usage_info: dict | None, delay: float):
+async def delayed_send(agent_info: dict, reply: str, usage_info: dict | None, delay: float, used_memory_ids: list[int] | None = None):
     """延迟发送 Agent 回复（batch 模式下错开广播时间）"""
     await asyncio.sleep(delay)
     history = list(agent_info["history"])  # 防御性拷贝
     try:
         async with async_session() as db:
-            await send_agent_message(agent_info["agent_id"], agent_info["agent_name"], reply, db)
+            msg = await send_agent_message(agent_info["agent_id"], agent_info["agent_name"], reply, db)
             await economy_service.deduct_quota(agent_info["agent_id"], db)
             if usage_info:
                 from ..models.tables import LLMUsage
@@ -78,6 +78,10 @@ async def delayed_send(agent_info: dict, reply: str, usage_info: dict | None, de
                     latency_ms=usage_info["latency_ms"],
                 )
                 db.add(record)
+            # 写入记忆引用
+            if used_memory_ids and msg:
+                for mid in used_memory_ids:
+                    db.add(MemoryReference(message_id=msg.id, memory_id=mid))
             await db.commit()
 
         # 记忆提取
@@ -245,7 +249,7 @@ async def handle_wakeup(message: Message):
                 agent_info["model"]
             )
             async with async_session() as mem_db:
-                reply, usage_info = await runner.generate_reply(
+                reply, usage_info, used_memory_ids = await runner.generate_reply(
                     agent_info["history"], db=mem_db
                 )
             logger.info("Agent %s generated reply", agent_info["agent_name"])
@@ -253,7 +257,7 @@ async def handle_wakeup(message: Message):
             # 第三阶段：保存结果（创建新的数据库会话，一次性写入所有数据）
             if reply:
                 async with async_session() as db:
-                    await send_agent_message(agent_info["agent_id"], agent_info["agent_name"], reply, db)
+                    msg = await send_agent_message(agent_info["agent_id"], agent_info["agent_name"], reply, db)
                     await economy_service.deduct_quota(agent_info["agent_id"], db)
                     if usage_info:
                         from ..models.tables import LLMUsage
@@ -266,6 +270,10 @@ async def handle_wakeup(message: Message):
                             latency_ms=usage_info["latency_ms"],
                         )
                         db.add(record)
+                    # 写入记忆引用
+                    if used_memory_ids and msg:
+                        for mid in used_memory_ids:
+                            db.add(MemoryReference(message_id=msg.id, memory_id=mid))
                     await db.commit()
 
                 # M2-4: 异步记忆提取（fire-and-forget）

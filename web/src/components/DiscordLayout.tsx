@@ -11,11 +11,13 @@ import { ChatRoom } from '../pages/ChatRoom'
 import { AgentManager } from '../pages/AgentManager'
 import { BountyBoard } from '../pages/BountyBoard'
 import { WorkPanel } from '../pages/WorkPanel'
+import { CityPanel } from '../pages/CityPanel'
+import { MemoryAdmin } from '../pages/MemoryAdmin'
 
 const HUMAN_AGENT_ID = 0
 let _sysMsgSeq = 0
 
-type View = 'chat' | 'agents' | 'bounties' | 'work'
+type View = 'chat' | 'agents' | 'bounties' | 'work' | 'city' | 'memory-admin'
 
 export function DiscordLayout() {
   const [messages, setMessages] = useState<Message[]>([])
@@ -65,6 +67,9 @@ export function DiscordLayout() {
           purchase: '购买商品',
           chat: '发起聊天',
           rest: '正在休息',
+          farm_work: '农田劳作',
+          mill_work: '磨坊工作',
+          eat: '进食',
         }
         const label = actionLabels[msg.data.action] || msg.data.action
         const sysMsg: Message = {
@@ -126,6 +131,10 @@ export function DiscordLayout() {
           <AgentManager />
         ) : view === 'work' ? (
           <WorkPanel agents={agents} onCreditsChange={() => fetchAgents().then(setAgents)} />
+        ) : view === 'city' ? (
+          <CityPanel agents={agents} />
+        ) : view === 'memory-admin' ? (
+          <MemoryAdmin agents={agents} />
         ) : (
           <BountyBoard agents={agents} />
         )}

@@ -71,6 +71,13 @@ async def scheduler_loop():
             logger.info("Memory cleanup: %d expired memories removed", cleaned)
         except Exception as e:
             logger.error("Memory cleanup failed: %s", e)
+        try:
+            from .city_service import production_tick
+            async with async_session() as db:
+                await production_tick("长安", db)
+            logger.info("Daily production tick completed")
+        except Exception as e:
+            logger.error("Production tick failed: %s", e)
 
 
 HOURLY_WAKEUP_INTERVAL = 3600  # 1 小时
@@ -151,12 +158,12 @@ async def hourly_wakeup_loop():
             # 4. 错开 5-30s 随机延迟广播
             for info in agents_to_reply:
                 aid = info["agent_id"]
-                reply, usage_info = results.get(aid, (None, None))
+                reply, usage_info, mem_ids = results.get(aid, (None, None, []))
                 if not reply:
                     continue
                 delay = random.uniform(5, 30)
                 task = asyncio.create_task(
-                    delayed_send(info, reply, usage_info, delay)
+                    delayed_send(info, reply, usage_info, delay, used_memory_ids=mem_ids)
                 )
                 _background_tasks.add(task)
                 task.add_done_callback(_background_tasks.discard)

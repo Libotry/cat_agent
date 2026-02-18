@@ -13,6 +13,8 @@ export const MOCK_AGENTS: Agent[] = [
     daily_free_quota: 10,
     quota_used_today: 0,
     activity: '正在写页游前端',
+    satiety: 80,
+    mood: 90,
   },
   {
     id: 2,
@@ -25,6 +27,8 @@ export const MOCK_AGENTS: Agent[] = [
     speak_interval: 120,
     daily_free_quota: 10,
     quota_used_today: 0,
+    satiety: 60,
+    mood: 70,
   },
   {
     id: 3,
@@ -37,6 +41,8 @@ export const MOCK_AGENTS: Agent[] = [
     speak_interval: 90,
     daily_free_quota: 10,
     quota_used_today: 0,
+    satiety: 40,
+    mood: 50,
   },
 ]
 

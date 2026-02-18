@@ -174,11 +174,11 @@ async def trigger_batch_wakeup():
     dispatched = 0
     for info in agents_to_reply:
         aid = info["agent_id"]
-        reply, usage_info = results.get(aid, (None, None))
+        reply, usage_info, mem_ids = results.get(aid, (None, None, []))
         if not reply:
             continue
         delay = random.uniform(2, 8)
-        task = asyncio.create_task(delayed_send(info, reply, usage_info, delay))
+        task = asyncio.create_task(delayed_send(info, reply, usage_info, delay, used_memory_ids=mem_ids))
         _background_tasks.add(task)
         task.add_done_callback(_background_tasks.discard)
         dispatched += 1

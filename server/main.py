@@ -15,8 +15,8 @@ from sqlalchemy import select, func as sa_func
 from app.core import init_db
 from app.core.config import settings
 from app.core.database import async_session
-from app.models import Agent, Job, VirtualItem
-from app.api import agents_router, chat_router, dev_router, bounties_router, work_router, shop_router
+from app.models import Agent, Job, VirtualItem, Building, Resource
+from app.api import agents_router, chat_router, dev_router, bounties_router, work_router, shop_router, memory_router, city_router
 from app.services.vector_store import init_vector_store, close_vector_store
 from app.services.scheduler import scheduler_loop, hourly_wakeup_loop, autonomy_loop
 
@@ -56,11 +56,33 @@ async def seed_jobs_and_items():
         await db.commit()
 
 
-@asynccontextmanager
+async def seed_city_buildings():
+    """仅在 buildings 表为空时插入城市初始数据"""
+    async with async_session() as db:
+        building_count = await db.execute(select(sa_func.count(Building.id)))
+        if building_count.scalar() == 0:
+            db.add_all([
+                Building(name="东郊农田", building_type="farm", city="长安", owner="公共", max_workers=5, description="城东的大片农田"),
+                Building(name="西市磨坊", building_type="mill", city="长安", owner="公共", max_workers=3, description="将小麦磨成面粉"),
+                Building(name="南城集市", building_type="market", city="长安", owner="公共", max_workers=4, description="买卖各种商品"),
+                Building(name="北区民居", building_type="house", city="长安", owner="公共", max_workers=6, description="居民居住区"),
+            ])
+
+        resource_count = await db.execute(select(sa_func.count(Resource.id)))
+        if resource_count.scalar() == 0:
+            db.add_all([
+                Resource(city="长安", resource_type="wheat", quantity=100),
+                Resource(city="长安", resource_type="flour", quantity=50),
+                Resource(city="长安", resource_type="wood", quantity=30),
+                Resource(city="长安", resource_type="stone", quantity=20),
+            ])
+
+        await db.commit()
 async def lifespan(app: FastAPI):
     await init_db()
     await ensure_human_agent()
     await seed_jobs_and_items()
+    await seed_city_buildings()
     await init_vector_store()
     scheduler_task = asyncio.create_task(scheduler_loop())
     wakeup_task = asyncio.create_task(hourly_wakeup_loop())
@@ -100,6 +122,8 @@ app.include_router(dev_router, prefix="/api")
 app.include_router(bounties_router, prefix="/api")
 app.include_router(work_router, prefix="/api")
 app.include_router(shop_router, prefix="/api")
+app.include_router(memory_router, prefix="/api")
+app.include_router(city_router, prefix="/api")
 
 
 @app.get("/api/health")
