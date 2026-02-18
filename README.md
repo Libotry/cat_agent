@@ -131,7 +131,6 @@
 graph TB
     subgraph "前端层"
         Web[React Web UI]
-        Plugin[OpenClaw Plugin]
     end
 
     subgraph "API层"
@@ -139,16 +138,28 @@ graph TB
         WS[WebSocket]
     end
 
-    subgraph "服务层"
+    subgraph "核心服务"
         AgentRunner[Agent Runner<br/>LLM调用]
+        AutonomyService[Autonomy Service<br/>自主行为决策]
         WakeupService[Wakeup Service<br/>唤醒引擎]
-        MemoryService[Memory Service<br/>记忆管理]
-        EconomyService[Economy Service<br/>经济系统]
-        VectorStore[Vector Store<br/>语义搜索]
-        Scheduler[Scheduler<br/>定时任务]
+        ToolRegistry[Tool Registry<br/>工具注册]
     end
 
-    subgraph "数据层"
+    subgraph "城市与经济"
+        CityService[City Service<br/>城市系统]
+        WorkService[Work Service<br/>工作岗位]
+        ShopService[Shop Service<br/>商店系统]
+        EconomyService[Economy Service<br/>经济系统]
+    end
+
+    subgraph "记忆系统"
+        MemoryService[Memory Service<br/>记忆管理]
+        MemoryAdmin[Memory Admin<br/>记忆后台]
+        VectorStore[Vector Store<br/>语义搜索]
+    end
+
+    subgraph "基础设施"
+        Scheduler[Scheduler<br/>定时任务]
         SQLite[(SQLite<br/>结构化+向量数据)]
     end
 
@@ -160,23 +171,35 @@ graph TB
     end
 
     Web -->|HTTP/WS| FastAPI
-    Plugin -->|WebSocket| WS
     FastAPI --> AgentRunner
     FastAPI --> WakeupService
-    FastAPI --> MemoryService
+    FastAPI --> CityService
     FastAPI --> EconomyService
 
+    AgentRunner --> AutonomyService
+    AgentRunner --> ToolRegistry
     AgentRunner --> OpenAI
     AgentRunner --> Anthropic
     AgentRunner --> OpenRouter
 
+    AutonomyService --> MemoryService
+    AutonomyService --> EconomyService
     WakeupService --> AgentRunner
+
+    CityService --> WorkService
+    CityService --> ShopService
+    WorkService --> EconomyService
+    ShopService --> EconomyService
+
     MemoryService --> VectorStore
+    MemoryAdmin --> MemoryService
     VectorStore --> SQLite
     VectorStore --> SiliconFlow
 
     MemoryService --> SQLite
     EconomyService --> SQLite
+    CityService --> SQLite
+
     Scheduler --> EconomyService
     Scheduler --> MemoryService
     Scheduler --> WakeupService
