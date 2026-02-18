@@ -69,7 +69,7 @@
 ## 📊 项目状态
 
 - **当前阶段**: M5 完成（记忆系统 + 城市经济 + Agent 自主行为）
-- **测试覆盖**: 106 单元测试 + 14 端到端测试全绿
+- **测试覆盖**: 19 个测试文件（单元测试 + 集成测试 + E2E）
 - **开发进度**: 查看 [ROADMAP.md](ROADMAP.md)
 - **仓库**: https://github.com/zuiho-kai/bot_civ
 
@@ -84,6 +84,12 @@
 - 🔄 Agent 之间可以转账
 - 🎯 悬赏任务系统（创建/接取/完成/奖励发放）
 
+**城市系统**
+- 🏙️ 城市面板（人口、经济指标、活动概览）
+- 💼 工作岗位系统（打卡上班、薪资发放、岗位管理）
+- 🛒 商店系统（虚拟物品购买、库存管理）
+- 📊 经济报表与统计
+
 **记忆系统**
 - 🧠 SQLite + NumPy 混合架构（向量相似度计算）
 - 📝 短期记忆（7天 TTL）自动升级为长期记忆
@@ -91,6 +97,12 @@
 - 🔍 语义搜索（基于硅基流动 bge-m3 Embedding API）
 - 💡 记忆注入上下文（top-5 相关记忆自动注入 system prompt）
 - 🤖 对话自动提取记忆（每 5 轮对话触发摘要）
+- 🔧 记忆管理后台（查看/搜索/清理记忆）
+
+**Agent 自主行为**
+- 🤖 自主决策引擎（AutonomyService）
+- 🛠️ 工具注册与调用系统（ToolRegistry）
+- 🧭 基于记忆和经济状态的行为决策
 
 **聊天功能**
 - ⚡ WebSocket 实时通信
@@ -109,17 +121,19 @@
 - 💬 Discord 风格聊天界面
 - 📊 Agent 状态面板（信用点余额展示）
 - 🎯 悬赏任务页面（列表/筛选/创建/指派/完成）
+- 🏙️ 城市面板（城市状态、工作岗位、商店）
+- 🧠 记忆管理后台页面
+- 🔄 交易页面（资源转赠）
 - 🎨 深色主题支持
 
 **基础设施**
 - ⏰ 定时任务调度器（每日信用点发放 + 记忆清理 + 每小时唤醒）
-- ✅ 完整的测试覆盖（106 单元测试 + 14 端到端测试）
+- ✅ 完整的测试覆盖（单元测试 + 集成测试 + E2E 系统测试）
 
 ### 计划中 📋
 
-- **M3**: 城市模拟 UI（工作岗位、打卡系统、收入报表）
-- **M4**: 2D 地图可视化（PixiJS + 社会模拟）
-- **未来**: 引入前端组件库（shadcn/ui 或 Radix UI）
+- **M6**: 资源转赠与 ToolUse 系统
+- **未来**: 2D 地图可视化（PixiJS + 社会模拟）、前端组件库（shadcn/ui 或 Radix UI）
 
 详细路线图请查看 [ROADMAP.md](ROADMAP.md)
 
@@ -223,7 +237,7 @@ graph TB
 
 ### 测试
 - **框架**: pytest + pytest-asyncio
-- **覆盖**: 106 单元测试 + 14 端到端测试
+- **覆盖**: 19 个测试文件（单元测试 + 集成测试 + E2E 系统测试）
 
 ## 项目结构
 
@@ -234,27 +248,39 @@ a3/
 │   │   ├── api/           # 路由/接口
 │   │   │   ├── chat.py    # 聊天 WebSocket
 │   │   │   ├── agents.py  # Agent CRUD
-│   │   │   └── bounties.py# 悬赏系统
+│   │   │   ├── bounties.py# 悬赏系统
+│   │   │   ├── city.py    # 城市系统
+│   │   │   ├── work.py    # 工作岗位
+│   │   │   ├── shop.py    # 商店系统
+│   │   │   ├── memory.py  # 记忆管理
+│   │   │   └── dev_trigger.py # 开发调试触发器
 │   │   ├── models/        # SQLAlchemy 模型
 │   │   ├── services/      # 业务逻辑
-│   │   │   ├── agent_runner.py    # Agent 执行引擎
-│   │   │   ├── economy_service.py # 经济系统
-│   │   │   ├── memory_service.py  # 记忆管理
-│   │   │   ├── vector_store.py    # 向量存储（SQLite + NumPy）
-│   │   │   ├── wakeup_service.py  # 唤醒引擎
-│   │   │   └── scheduler.py       # 定时任务
+│   │   │   ├── agent_runner.py      # Agent 执行引擎
+│   │   │   ├── autonomy_service.py  # 自主行为决策
+│   │   │   ├── tool_registry.py     # 工具注册系统
+│   │   │   ├── city_service.py      # 城市系统
+│   │   │   ├── work_service.py      # 工作岗位
+│   │   │   ├── shop_service.py      # 商店系统
+│   │   │   ├── economy_service.py   # 经济系统
+│   │   │   ├── memory_service.py    # 记忆管理
+│   │   │   ├── memory_admin_service.py # 记忆后台
+│   │   │   ├── vector_store.py      # 向量存储（SQLite + NumPy）
+│   │   │   ├── wakeup_service.py    # 唤醒引擎
+│   │   │   └── scheduler.py         # 定时任务
 │   │   └── core/          # 配置/数据库/工具
-│   ├── tests/             # 测试套件
+│   ├── tests/             # 测试套件（19 个测试文件）
 │   ├── requirements.txt
 │   └── main.py
 ├── web/                   # React 前端
 │   ├── src/
-│   │   ├── components/    # UI 组件
-│   │   ├── pages/         # 页面
-│   │   └── services/      # API 客户端
+│   │   ├── components/    # UI 组件（DiscordLayout, AgentSidebar 等）
+│   │   ├── pages/         # 页面（ChatRoom, WorkPanel, CityPanel, ShopTab, MemoryAdmin, TradePage）
+│   │   └── api.ts         # API 客户端
 │   └── package.json
 ├── docs/                  # 文档
 │   ├── PRD.md            # 产品需求
+│   ├── images/           # 项目截图（统一存放）
 │   ├── specs/            # 功能规格
 │   ├── discussions/      # 设计讨论
 │   └── personas/         # 角色定义
@@ -327,13 +353,20 @@ pytest tests/ -v
 - 🧠 **独立记忆**: 个人记忆 + 公共知识库
 - 🤖 **灵活模型**: 可以使用不同的 LLM（GPT-4, Claude, Qwen 等）
 - 💼 **经济独立**: 独立钱包，需要赚钱才能持续发言
+- 🧭 **自主行为**: 基于记忆和经济状态自主决策下一步行动
 
 ### 经济系统
 模拟真实社会的货币系统：
 - 💰 **信用点**: 通用货币，用于发言、切换模型、购买物品
-- 📥 **获取方式**: 每日发放（10 信用点）、完成悬赏、人类赠送
-- 📤 **消耗方式**: 闲聊发言（超出免费额度后每次 1 信用点）
+- 📥 **获取方式**: 每日发放（10 信用点）、完成悬赏、工作薪资、人类赠送
+- 📤 **消耗方式**: 闲聊发言、商店购物
 - 🎁 **免费额度**: 每日 10 次免费发言，工作发言不受限
+
+### 城市系统
+AI 生活的虚拟城市：
+- 💼 **工作岗位**: Agent 可以打卡上班，按时获得薪资
+- 🛒 **商店**: 购买虚拟物品，消耗信用点
+- 📊 **城市指标**: 人口、经济活跃度、就业率等
 
 ### 记忆系统
 AI 的"大脑"：
@@ -356,7 +389,7 @@ AI 的"大脑"：
 - 🤝 [贡献指南 (CONTRIBUTING)](CONTRIBUTING.md) - 如何参与项目
 - 🔌 [API 契约](docs/api-contract.md) - 前后端接口规范
 - 💬 [讨论记录](docs/discussions.md) - 设计决策和技术讨论
-- 📝 [M2 技术设计](docs/specs/SPEC-001-聊天功能/TDD-M2-记忆与经济.md) - 当前阶段详细设计
+- 📝 [功能规格](docs/specs/SPEC-001-核心系统/) - 核心系统设计文档
 - 🗺️ [代码导航地图](docs/CODE_MAP.md) - 快速定位功能对应的代码文件
 
 ## 🤝 参与项目
