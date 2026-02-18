@@ -6,8 +6,13 @@
 ## 语言与协作规则
 
 1. **全中文输出**：所有对话、文档、注释、commit message 一律使用中文
-2. **方案评审流程**：任何新功能/改造方案，必须先提交给人类替身 PM（`docs/personas/human-proxy-pm.md`）评审，PM 确认没问题后再与开发者（用户）对齐实施细节。不允许跳过 PM 评审直接开干
-3. **PM 评审问题逐个对齐**：PM 评审产出的待确认问题，必须逐个提交给用户决策，禁止打包。每个问题独立提供背景 + 选项，用户拍板后再进入下一个
+2. **IR 五方评审流程**：IR 完成后必须启动五方评审，用子 agent 执行。每个角色读取自己的 persona 文件 + `docs/personas/human-proxy-knowledge.md`（知识库），独立评审，产出待确认问题列表：
+   - Architect → `docs/personas/architect.md`
+   - Tech Lead → `docs/personas/tech-lead.md`
+   - QA Lead → `docs/personas/qa-lead.md`
+   - Developer → `docs/personas/developer.md`
+   - PM → `docs/personas/human-proxy-pm.md`
+3. **评审问题逐个对齐**：五方评审产出的待确认问题，必须逐个提交给用户决策，禁止打包。每个问题独立提供背景 + 选项，用户拍板后再进入下一个
 
 ## 核心规则
 
@@ -62,7 +67,15 @@
 - **编码前必须全量 Read 错题本**（每次编码前强制执行）：
   1. 先读通用错题本：`docs/runbooks/error-books/error-book-dev-common.md`
   2. 再按任务类型读对应错题本：后端任务读 `error-book-dev-backend.md`，前端任务读 `error-book-dev-frontend.md`，全栈任务两本都读
-- **每个 Phase 完成后必须跑 ST**：拉起真实服务器 + 调用真实 API + 检查真实数据库，不能只跑 pytest
+- **每个 Phase 完成后必须跑 ST（系统测试）**——以下为强制约束，违反任何一条即判定 ST 未通过：
+  1. **必须拉起真实服务器**：`uvicorn main:app` 或等效命令启动独立进程，禁止用 `ASGITransport`/`TestClient` 等进程内传输代替
+  2. **必须走真实网络**：HTTP client 连接 `http://localhost:端口`，不允许 `base_url="http://test"` 等虚假地址
+  3. **必须用真实数据库**：SQLite 文件或 Postgres 实例，禁止纯内存 mock 数据库（测试专用 `.db` 文件可以）
+  4. **LLM 调用规则**：涉及 Agent 决策/聊天的场景必须走真实 LLM（可用便宜模型如 gpt-4o-mini）；纯经济/资源/CRUD 场景可不调 LLM
+  5. **WebSocket 验证**：必须用 `websockets` 库建立真实 TCP 连接，禁止用 `starlette.testclient` 的进程内 WebSocket
+  6. **ST 脚本位置**：`server/e2e_*.py`（独立脚本，非 pytest），用 `python e2e_xxx.py` 执行
+  7. **pytest 定位**：`server/tests/test_*.py` 是单元/集成测试，允许 mock，但不能替代 ST
+  8. **ST 不通过不允许**：更新进度文件、进入下一个 Phase、标记任务完成
 - **出问题自动落盘流程**（不需要用户提醒）：
   - ⚠️ **逐步执行，不要凭印象跳步**：每完成一步再做下一步，第 2 步必须实际调用 Read 工具读文件，不能跳过
   1. 分析根因 + 溯源各阶段遗漏
