@@ -46,7 +46,7 @@ export interface WsNewMessage {
 export interface WsSystemEvent {
   type: 'system_event'
   data: {
-    event: 'agent_online' | 'agent_offline' | 'checkin' | 'purchase' | 'agent_action'
+    event: 'agent_online' | 'agent_offline' | 'checkin' | 'purchase' | 'agent_action' | 'resource_transferred'
     agent_id: number
     agent_name: string
     timestamp: string
@@ -54,8 +54,15 @@ export interface WsSystemEvent {
     reward?: number
     item_name?: string
     price?: number
-    action?: 'checkin' | 'purchase' | 'chat' | 'rest' | 'farm_work' | 'mill_work' | 'eat' | 'assign_building' | 'unassign_building'
+    action?: string
     reason?: string
+    // M5.1: 转赠事件字段
+    from_agent_id?: number
+    from_agent_name?: string
+    to_agent_id?: number
+    to_agent_name?: string
+    resource_type?: string
+    quantity?: number
   }
 }
 
@@ -197,4 +204,9 @@ export interface EatResult {
   satiety: number
   mood: number
   stamina: number
+}
+
+export interface TransferResult {
+  ok: boolean
+  reason: string
 }

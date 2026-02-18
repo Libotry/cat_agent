@@ -44,14 +44,14 @@ describe('MessageBubble', () => {
   }
 
   it('renders agent message with name and content', () => {
-    render(<MessageBubble message={agentMsg} />)
+    render(<MessageBubble message={agentMsg} showHeader={true} />)
     expect(screen.getByText('Alice')).toBeInTheDocument()
     expect(screen.getByText('大家好！')).toBeInTheDocument()
   })
 
   it('renders human message with correct style', () => {
-    const { container } = render(<MessageBubble message={humanMsg} />)
-    expect(container.querySelector('.msg-human')).toBeInTheDocument()
+    const { container } = render(<MessageBubble message={humanMsg} showHeader={true} />)
+    expect(container.querySelector('.msg-row')).toBeInTheDocument()
     expect(screen.getByText('你好 Alice')).toBeInTheDocument()
   })
 

@@ -1,4 +1,4 @@
-import type { Agent, Message, Bounty, Job, CheckInResult, ShopItem, PurchaseResult, AgentItem, Memory, MemoryListResponse, MemoryStats, CityOverview, Building, ProductionLog, WorkerResult, EatResult } from './types'
+import type { Agent, Message, Bounty, Job, CheckInResult, ShopItem, PurchaseResult, AgentItem, Memory, MemoryListResponse, MemoryStats, CityOverview, Building, ProductionLog, WorkerResult, EatResult, TransferResult } from './types'
 import { MOCK_AGENTS, MOCK_MESSAGES, MOCK_BOUNTIES } from './mock-data'
 
 const BASE = '/api'
@@ -335,5 +335,28 @@ export async function fetchProductionLogs(city: string, limit = 20): Promise<Pro
   if (await useMock()) return []
   const res = await fetch(`${BASE}/cities/${encodeURIComponent(city)}/production-logs?limit=${limit}`)
   if (!res.ok) throw new Error(`fetchProductionLogs: ${res.status}`)
+  return res.json()
+}
+
+// --- Transfer API ---
+
+export async function transferResource(
+  fromAgentId: number,
+  toAgentId: number,
+  resourceType: string,
+  quantity: number,
+): Promise<TransferResult> {
+  if (await useMock()) return { ok: false, reason: 'mock_mode' }
+  const res = await fetch(`${BASE}/agents/transfer-resource`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      from_agent_id: fromAgentId,
+      to_agent_id: toAgentId,
+      resource_type: resourceType,
+      quantity,
+    }),
+  })
+  if (!res.ok) throw new Error(`transferResource: ${res.status}`)
   return res.json()
 }

@@ -56,6 +56,19 @@ async def transfer_resource(from_agent_id: int, to_agent_id: int, resource_type:
     from_res.quantity -= quantity
     to_res.quantity += quantity
     await db.commit()
+
+    # M5.1: 广播转赠事件
+    from_agent = await db.get(Agent, from_agent_id)
+    to_agent = await db.get(Agent, to_agent_id)
+    await _broadcast_city_event("resource_transferred", {
+        "from_agent_id": from_agent_id,
+        "from_agent_name": from_agent.name if from_agent else f"Agent#{from_agent_id}",
+        "to_agent_id": to_agent_id,
+        "to_agent_name": to_agent.name if to_agent else f"Agent#{to_agent_id}",
+        "resource_type": resource_type,
+        "quantity": quantity,
+    })
+
     return {"ok": True, "reason": f"转移 {quantity} {resource_type} 成功"}
 
 

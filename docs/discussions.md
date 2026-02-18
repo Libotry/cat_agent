@@ -30,6 +30,8 @@
 - 文档改进：添加截图/架构图/对比表格，新增代码导航和进度文件说明
 - 外部差评评估：40% 事实错误（并发bug/悬赏验证/Batch声称），30% 合理但不紧急，30% 真问题（产品定位对外不清晰+部署门槛高）；技术架构不变，P0 改进 README 定位和部署体验
 - 去掉 LanceDB：全票通过 SQLite BLOB + NumPy 暴力 cosine similarity 替换，保留语义搜索能力，去掉 LanceDB/PyArrow 依赖；embedding 模型选择（本地 vs API）另开讨论
+- SSE vs WebSocket：HTTP/2 下 SSE 单连接多路复用消除连接数限制，内存效率高（可丢弃已处理消息）；推荐混合方案（聊天用 WebSocket，通知/事件用 SSE）；Mastodon 同时支持两种协议
+- Twitter/X 实时推送架构：WebSocket（双向）+ SSE（单向）+ 多级降级；混合 Fanout 策略（按用户规模动态调整）；Kafka（事件流）+ Redis Pub/Sub（实时推送）；在线推送 + 离线拉取 + 分层优先级
 
 ---
 
@@ -62,3 +64,5 @@
 | 2026-02-16 | 去掉 LanceDB 向量数据库 | 架构讨论 | 全票通过方案 A（SQLite BLOB + NumPy 替换 LanceDB），保留语义搜索，去掉重依赖 | [查看](discussions/2026-02-16-remove-lancedb.md) |
 | 2026-02-16 | M2.2 前端组件库选型 | 五方讨论 | M2.2 纯 CSS 清理 + stylelint；M3 按需引入 Radix UI；M4 评估 Tailwind；shadcn/ui 否决 | — |
 | 2026-02-18 | 开发任务看板方案调研 | 技术调研 | 四种方案已对比，需求不明确，方案未定 | [查看](discussions/2026-02-18-task-board-research.md) |
+| 2026-02-18 | SSE vs WebSocket 技术调研 | 技术调研 | HTTP/2 下 SSE 消除连接数限制，推荐混合方案（聊天用 WebSocket，通知用 SSE） | [查看](discussions/2026-02-18-sse-vs-websocket-research.md) |
+| 2026-02-18 | Twitter/X 实时推送架构调研 | 技术调研 | WebSocket + SSE 混合协议；混合 Fanout 策略；Kafka + Redis Pub/Sub；推拉结合 + 分层优先级 | [查看](discussions/2026-02-18-twitter-realtime-push-architecture.md) |

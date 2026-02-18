@@ -34,16 +34,17 @@ AUTONOMY_MODEL = "wakeup-model"  # 复用免费小模型做决策
 SYSTEM_PROMPT = """你是虚拟城市模拟器。根据世界状态为每个居民决定行为。
 
 规则：
-1. 行为：checkin（打卡）、purchase（购买）、chat（聊天）、rest（休息）、assign_building（应聘建筑）、unassign_building（离职）、eat（吃饭）
+1. 行为：checkin（打卡）、purchase（购买）、chat（聊天）、rest（休息）、assign_building（应聘建筑）、unassign_building（离职）、eat（吃饭）、transfer_resource（转赠资源）
 2. 已打卡不能重复；余额不足不能购买；行为符合性格
 3. rest 是合理选择，不必所有人都行动
 4. 饱腹度低时优先 eat；体力低时优先 rest；无工作时考虑 assign_building
 5. assign_building 需要 building_id；unassign_building 无需参数（自动查找当前建筑）
+6. transfer_resource：当自己资源充裕且有居民资源匮乏时可考虑转赠
 
 直接输出纯 JSON 数组，不要解释，不要 markdown，不要思考过程。示例：
-[{"agent_id": 1, "action": "assign_building", "params": {"building_id": 3}, "reason": "去官府田工作赚面粉"}]
+[{"agent_id": 1, "action": "transfer_resource", "params": {"to_agent_id": 2, "resource_type": "flour", "quantity": 3}, "reason": "Bob 没有面粉，分一些给他"}]
 
-params: checkin={}, purchase={"item_id": <int>}, chat={}, rest={}, assign_building={"building_id": <int>}, unassign_building={}, eat={}"""
+params: checkin={}, purchase={"item_id": <int>}, chat={}, rest={}, assign_building={"building_id": <int>}, unassign_building={}, eat={}, transfer_resource={"to_agent_id": <int>, "resource_type": "<str>", "quantity": <number>}"""
 
 
 async def build_world_snapshot(db: AsyncSession) -> str:
@@ -238,7 +239,7 @@ async def decide(snapshot: str) -> list[dict]:
                 continue
             if "agent_id" not in d or "action" not in d:
                 continue
-            if d["action"] not in ("checkin", "purchase", "chat", "rest", "assign_building", "unassign_building", "eat"):
+            if d["action"] not in ("checkin", "purchase", "chat", "rest", "assign_building", "unassign_building", "eat", "transfer_resource"):
                 d["action"] = "rest"
             valid.append(d)
 
@@ -369,6 +370,22 @@ async def execute_decisions(decisions: list[dict], db: AsyncSession) -> dict:
                     await _broadcast_action(agent_name, aid, "eat", reason)
                 else:
                     logger.info("Autonomy eat failed for %s: %s", agent_name, res["reason"])
+                    stats["failed"] += 1
+
+            elif action == "transfer_resource":
+                to_id = params.get("to_agent_id")
+                res_type = params.get("resource_type")
+                qty = params.get("quantity")
+                if to_id and res_type and qty:
+                    from .city_service import transfer_resource
+                    res = await transfer_resource(aid, to_id, res_type, qty, db)
+                    if res["ok"]:
+                        stats["success"] += 1
+                        await _broadcast_action(agent_name, aid, "transfer_resource", reason)
+                    else:
+                        logger.info("Autonomy transfer_resource failed for %s: %s", agent_name, res["reason"])
+                        stats["failed"] += 1
+                else:
                     stats["failed"] += 1
 
             round_log.append({"agent_id": aid, "agent_name": agent_name, "action": action, "reason": reason})

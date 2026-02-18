@@ -17,6 +17,7 @@
 ## 核心规则
 
 1. **强制记录**：里程碑完成 → 更新 `claude-progress.txt` 顶部"最近活动"
+7. **主动查 MCP 记忆**：新 session 接到任务时、碰到报错/卡点时、做设计决策前，必须先用 MCP search 查相关历史记忆，避免重复劳动或遗漏已有结论
 2. **分层进度**：小改动记 `server/progress.md`，大里程碑记 `claude-progress.txt`（详见 `docs/PROGRESS_FILES.md`）
 3. **讨论记录**：功能相关 → `docs/specs/SPEC-XXX/讨论细节/`，项目通用 → `docs/discussions/`。**创建讨论文件后必须同步更新 `docs/discussions.md` 索引**（快速总结 + 索引表都要更新），子 agent 落盘时也必须在 prompt 中包含此要求
 4. **防丢失**：对话是临时的，文件是持久的

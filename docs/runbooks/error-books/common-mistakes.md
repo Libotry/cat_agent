@@ -149,6 +149,12 @@
 ✅ 新增前后端联动功能后，必须做对齐 checklist：① types.ts 字段 ↔ schemas.py 逐字段比对 ② API 路径+method+body 比对 ③ WebSocket 事件 payload 比对
 > 前后端不对齐只会在运行时暴露，越晚发现修复成本越高。案例：M3 城市经济 6 个接口 + 2 个 WS 事件全量比对。
 
+### COMMON-18 Code Review 修复后跳过重新 Review — COMMON-15 变体
+
+❌ Code Review 发现 P1 → 修复 → 直接跑测试宣布完成，跳过"重新 Review 修改后的代码"，被用户提醒才补做
+✅ 修复后必须重新 Review 修改点，循环直到 P0/P1 归零。正确顺序：CR 发现问题 → 修复 → 重新 CR → 归零 → 跑测试
+> CLAUDE.md L65 已明确写了"修复 → 重新 Review → 循环"，执行时不能省略中间步骤。
+
 ---
 角色专属错误追加到对应角色的错题本，格式：
 

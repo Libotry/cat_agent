@@ -7,16 +7,35 @@
 
 ## 当前状态
 
-- **当前任务**: M2 Phase 4 完成，进入验收
-- **最近完成**: M2 Phase 4（Batch 推理优化）
-- **待办优先级**: 无阻塞项，可进入下一阶段
+- **当前任务**: M5.1 完成，可进入 M5.2 或 M6
+- **最近完成**: M5.1 资源转赠 + Tool Use（ST 8/8 全绿）
+- **待办优先级**: M5.2 交易市场 或 M6 Agent CLI 运行时
 - **阻塞问题**: 无
 
 ---
 
 ## 进展日志
 
-### 2026-02-16 (续)
+### 2026-02-19
+
+#### M5.1 完成 — 资源转赠 + Tool Use
+
+**改动内容**：
+
+1. **tool_registry.py** (新建): Tool Use 框架，`ToolRegistry` 单例 + `_handle_transfer_resource`
+2. **agent_runner.py**: `generate_reply()` 加 tool_call 循环（最多 1 轮），从 tool_registry 获取工具定义
+3. **autonomy_service.py**: SYSTEM_PROMPT 新增 `transfer_resource` 动作，`decide()` 校验参数
+4. **city_service.py**: `transfer_resource()` 成功后广播 `resource_transferred` 事件
+
+**前端**：TradePage.tsx（交易面板）、React Router、API 包装、类型扩展
+
+**验证**: ST 8/8 全绿（ST-1~4 纯 REST + ST-5 真实 LLM Tool Use）
+
+**状态**: ✅ 完成
+
+---
+
+### 2026-02-17
 
 #### M2 Phase 4 完成 — Batch 推理优化
 

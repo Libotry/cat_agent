@@ -5,54 +5,52 @@
 
 ## 当前状态
 
-- **阶段**: M2 Phase 6 完成（E2E 验证 14/14 全绿），M2 里程碑完成
+- **阶段**: M5.1 完成（资源转赠 + Tool Use，ST 8/8 全绿）
 - **技术栈**: FastAPI + WebSocket | React + Vite | SQLite + NumPy + 硅基流动 Embedding API
 - **仓库**: https://github.com/zuiho-kai/bot_civ
-- **测试**: 106/106 UT 全绿 + 14/14 E2E 全绿
+- **测试**: UT 全绿 + M5.1 ST 8/8 全绿
 
 ## 最近活动
 
+### 2026-02-19
+- M5.1 资源转赠 + Tool Use 完成：ST 8/8 全绿
+  - 后端：`tool_registry.py`（Tool Use 框架）、`agent_runner.py`（LLM tool_call 循环）、`autonomy_service.py`（Agent 自主转赠）、`city_service.py`（转赠事件广播）
+  - 前端：`TradePage.tsx`（交易面板）、React Router 引入、API 包装、类型扩展
+  - ST-1~4: 转赠成功/资源不足/WS 广播/数量校验
+  - ST-5: Tool Use 端到端（真实 LLM，Agent 回复确认）
+  - 修复：e2e 脚本 Agent 模型从 gpt-4o-mini 改为 stepfun/step-3.5-flash（MODEL_REGISTRY 匹配）
+
+### 2026-02-18
+- M5 记忆系统 + 城市经济全功能实现 + 真实 E2E 验证
+- M4 Agent 自主行为 — 后端引擎 + 前端展示 + E2E 验证
+  - 修复：模型切换 + prompt 精简 + reasoning fallback
+  - Gap Closure: 9 E2E + 10 单元测试
+
 ### 2026-02-17
-- M3 体验问题修复 5 项（App.css / WorkPanel.tsx / UserAvatar.tsx）
-  - 悬赏表单 UI 优化、Agent dropdown 搜索、购买后自动切背包 tab、颜色主题变量化
-  - Agent 不回消息 → 配置问题（model="none" + API key 空）
-- 经验沉淀：DEV-12（多问题批量修复先分类再并行）、DEV-BUG-13
+- M3 城市经济闭环 — 工作/商店/前端 + Code Review 修复
+- M3 体验问题修复 5 项（悬赏表单 UI、Agent dropdown 搜索、颜色主题变量化等）
 
 ### 2026-02-16
 - M2 Phase 6 完成：E2E 端到端验证 14/14 全绿
-  - REST 场景 8/8：经济限制（零信用静默）、悬赏全生命周期、转账
-  - LLM 场景 6/6：@提及唤醒→回复→广播、免费额度→credit 扣费、5 轮对话→记忆提取
-  - 修复 DEV-BUG-12：Agent model 字段与 MODEL_REGISTRY 不匹配导致静默
-- M2 Phase 5 完成：前端经济信息展示 + 悬赏任务页面
-  - AgentStatusPanel 显示信用点余额
-  - BountyBoard 页面（列表/筛选/创建/指派/完成）
-  - ChannelSidebar 新增悬赏导航入口
-- M2 Phase 4 完成：Batch 推理优化（batch_generate + hourly_wakeup_loop + delayed_send）
-- M2 Phase 3 完成：记忆注入上下文 + 对话提取记忆 + 悬赏 API
-- 去 LanceDB 重构：SQLite BLOB + NumPy cosine similarity + 硅基流动 bge-m3
-- 经验沉淀：DEV-6（影响面分析）、COMMON-10（局部修复思维）
-
-## M2 进度（15 任务，6 Phase）
-
-- Phase 1-6 ✅ 全部完成
-- 详细拆解 → `docs/specs/SPEC-001-聊天功能/TDD-M2-记忆与经济.md`
+  - REST 场景 8/8 + LLM 场景 6/6
+- M2 Phase 3-5 完成：记忆注入、经济系统、悬赏、批量唤醒、前端 UI
 
 ## 里程碑
 
 - M1 ✅: Agent CRUD + WebSocket 聊天 + 唤醒引擎 + LLM 集成
 - M1.5 ✅: OpenClaw Plugin（TypeScript，openclaw-plugin/ 子目录）
-- M2 ✅: 记忆与经济系统（Phase 1-6 全绿）
-- M3 待定: 城市模拟 UI
+- M2 ✅: 记忆与经济系统（Phase 1-6，14/14 E2E 全绿）
+- M3 ✅: 城市经济闭环 + 体验修复
+- M4 ✅: Agent 自主行为（E2E 验证通过）
+- M5 ✅: 记忆系统 + 城市经济（全功能 + E2E 验证）
+- M5.1 ✅: 资源转赠 + Tool Use（ST 8/8 全绿）
+- M5.2 待定: 交易市场（挂单/接单/撤单）
+- M6 待定: Agent CLI 运行时（持久进程 + 上网 + 任意工具）
 
-## M2.2 遗留（M2 收尾后处理）
+## 遗留
 
-- [ ] CSS 硬编码清理 + stylelint 规则 + 设计 token 规划文档（五方讨论共识，M2.2 只做清理不引库）
-- [ ] Cat Cafe 风格主题（浅绿/米色暖色调、圆角卡片、干净布局）— 用户喜欢这个风格，不急，等项目完善后再搞
-
-## M3 遗留
-
-- [ ] Radix UI 按需引入（M3 城市模拟 UI 需要复杂交互时试点 1 组件，再决定推广范围）
-
-## M4 遗留
-
-- [ ] Tailwind CSS 评估（组件数涨到 50+ 时重新评估，当前 11 组件不值得迁移）
+- [ ] CSS 硬编码清理 + stylelint 规则 + 设计 token 规划文档
+- [ ] Cat Cafe 风格主题（浅绿/米色暖色调、圆角卡片）
+- [ ] Radix UI 按需引入（复杂交互时试点）
+- [ ] Tailwind CSS 评估（组件数涨到 50+ 时重新评估）
+- [ ] SSE 改造（等 Redis Pub/Sub 一起做）

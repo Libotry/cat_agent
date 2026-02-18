@@ -1,0 +1,181 @@
+.trade-page {
+  padding: 24px;
+  max-width: 800px;
+  margin: 0 auto;
+  background: var(--surface-chat);
+  min-height: 100%;
+  overflow-y: auto;
+}
+
+.tp-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.tp-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-heading);
+}
+
+.tp-back-btn {
+  padding: 6px 14px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s;
+  text-decoration: none;
+}
+
+.tp-back-btn:hover {
+  background: var(--accent-subtle);
+}
+
+/* 区块标题 */
+.tp-section-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 16px 0 8px;
+}
+
+/* 资源概览 */
+.tp-agent-resources {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.tp-agent-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.tp-agent-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-heading);
+  min-width: 60px;
+}
+
+.tp-agent-res {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+/* 转赠表单 */
+.tp-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 16px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  margin-bottom: 16px;
+}
+
+.tp-form label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tp-form select,
+.tp-form input {
+  padding: 8px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  min-height: 44px;
+}
+
+.tp-submit-row {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.tp-submit-btn {
+  padding: 8px 20px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--accent-primary);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 44px;
+  transition: background 0.15s;
+}
+
+.tp-submit-btn:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.tp-submit-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.tp-message {
+  font-size: 0.8rem;
+}
+
+.tp-message.success {
+  color: #23a559;
+}
+
+.tp-message.error {
+  color: #ed4245;
+}
+
+/* 转赠历史 */
+.tp-history {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tp-history-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+}
+
+.tp-history-time {
+  color: var(--text-muted);
+  min-width: 50px;
+}
+
+.tp-history-empty {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  padding: 8px 12px;
+}

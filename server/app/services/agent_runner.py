@@ -106,12 +106,45 @@ class AgentRunner:
 
             base_url, api_key, model_id = resolved
             client = AsyncOpenAI(api_key=api_key, base_url=base_url)
+
+            # M5.1: Tool Use — 传入工具定义
+            from .tool_registry import tool_registry
+            import json as _json
+            tools = tool_registry.get_tools_for_llm()
+            create_kwargs: dict = {
+                "model": model_id,
+                "messages": messages,
+                "max_tokens": 800,
+            }
+            if tools:
+                create_kwargs["tools"] = tools
+
             start = time.time()
-            response = await client.chat.completions.create(
-                model=model_id,
-                messages=messages,
-                max_tokens=800,
-            )
+            response = await client.chat.completions.create(**create_kwargs)
+
+            # M5.1: tool_call 处理（最多 1 轮）
+            msg = response.choices[0].message
+            if msg.tool_calls:
+                messages.append(msg)
+                for tc in msg.tool_calls:
+                    try:
+                        args = _json.loads(tc.function.arguments)
+                    except _json.JSONDecodeError:
+                        args = {}
+                    tool_context = {"agent_id": self.agent_id, "db": db}
+                    result = await tool_registry.execute(tc.function.name, args, tool_context)
+                    messages.append({
+                        "role": "tool",
+                        "tool_call_id": tc.id,
+                        "content": _json.dumps(result, ensure_ascii=False),
+                    })
+                # 第二次调用：基于工具结果生成最终回复（不传 tools，防止再次触发）
+                response = await client.chat.completions.create(
+                    model=model_id,
+                    messages=messages,
+                    max_tokens=800,
+                )
+
             latency_ms = int((time.time() - start) * 1000)
             usage_info = None
             if response.usage:
