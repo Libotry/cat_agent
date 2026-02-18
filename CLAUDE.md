@@ -64,9 +64,10 @@
 - 完成任务 → ⚠️ **更新进度文件前必须确认**：该 Phase 是否已完成 Code Review 循环（P0/P1 归零）？未完成则先 Review 再更新
 - **代码修复流程** → 实现 → 自验证 → Code Review → 修复 → 重新 Review → 循环直到 P0/P1 归零（详见 COMMON-10）
   - **强制门禁**：每个 Phase 实现完毕后，必须先完成 Code Review 循环（P0/P1 归零），才能更新进度文件或进入下一步。不允许跳过。
-- **编码前必须全量 Read 错题本**（每次编码前强制执行）：
+- **动手前必须全量 Read 错题本**（每次写代码或写文档到文件前强制执行，不限于"编码"）：
   1. 先读通用错题本：`docs/runbooks/error-books/error-book-dev-common.md`
   2. 再按任务类型读对应错题本：后端任务读 `error-book-dev-backend.md`，前端任务读 `error-book-dev-frontend.md`，全栈任务两本都读
+- **工具调用熔断规则**：同一工具连续失败 2 次且错误信息相同 → 必须停下来，读错误信息 + 回读错题本，换思路后再重试。禁止第 3 次盲重试
 - **每个 Phase 完成后必须跑 ST（系统测试）**——以下为强制约束，违反任何一条即判定 ST 未通过：
   1. **必须拉起真实服务器**：`uvicorn main:app` 或等效命令启动独立进程，禁止用 `ASGITransport`/`TestClient` 等进程内传输代替
   2. **必须走真实网络**：HTTP client 连接 `http://localhost:端口`，不允许 `base_url="http://test"` 等虚假地址
