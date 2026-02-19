@@ -7,6 +7,7 @@ import {
   removeWorker,
   eatFood,
   fetchProductionLogs,
+  constructBuilding,
 } from '../api'
 import './CityPanel.css'
 
@@ -45,6 +46,15 @@ export function CityPanel({ agents }: CityPanelProps) {
   const [eatMsg, setEatMsg] = useState('')
   const [eatErr, setEatErr] = useState('')
   const [eating, setEating] = useState(false)
+
+  // 建造对话框状态
+  const [showConstruct, setShowConstruct] = useState(false)
+  const [constructType, setConstructType] = useState<'farm' | 'mill'>('farm')
+  const [constructName, setConstructName] = useState('')
+  const [constructBuilderId, setConstructBuilderId] = useState<number>(0)
+  const [constructMsg, setConstructMsg] = useState('')
+  const [constructErr, setConstructErr] = useState('')
+  const [constructing, setConstructing] = useState(false)
 
   const loadOverview = useCallback(async () => {
     setLoading(true)
@@ -144,6 +154,29 @@ export function CityPanel({ agents }: CityPanelProps) {
     }
   }
 
+  // 建造建筑
+  const handleConstruct = async () => {
+    if (!constructName.trim() || constructBuilderId <= 0) return
+    setConstructing(true)
+    setConstructMsg('')
+    setConstructErr('')
+    try {
+      const result = await constructBuilding(CITY, constructBuilderId, constructType, constructName.trim())
+      if (result.ok) {
+        setConstructMsg(`开始建造，工期 ${result.estimated_completion_days} 天`)
+        setShowConstruct(false)
+        setConstructName('')
+        loadOverview()
+      } else {
+        setConstructErr(result.reason)
+      }
+    } catch {
+      setConstructErr('建造请求失败')
+    } finally {
+      setConstructing(false)
+    }
+  }
+
   const goBack = () => {
     setSubView('overview')
     setSelectedBuilding(null)
@@ -188,20 +221,88 @@ export function CityPanel({ agents }: CityPanelProps) {
           {overview.buildings.map(b => (
             <div
               key={b.id}
-              className="cp-building-card"
+              className={`cp-building-card${b.status === 'constructing' ? ' constructing' : ''}`}
               onClick={() => openBuilding(b.id)}
             >
               <div className="cp-building-icon">{BUILDING_ICONS[b.building_type] ?? '🏠'}</div>
               <div className="cp-building-name">{b.name}</div>
-              <div className="cp-building-workers">
-                工人: {b.workers.length}/{b.max_workers}
-              </div>
+              {b.status === 'constructing' ? (
+                <div className="cp-building-progress">
+                  <span className="cp-constructing-tag">建造中</span>
+                  <div className="cp-progress-bar">
+                    <div
+                      className="cp-progress-fill"
+                      style={{
+                        width: `${b.construction_days ? Math.min(100, Math.round(
+                          ((Date.now() - new Date(b.construction_started_at ?? '').getTime()) / 86400000 / b.construction_days) * 100
+                        )) : 0}%`
+                      }}
+                    />
+                  </div>
+                  <span className="cp-progress-text">工期 {b.construction_days} 天</span>
+                </div>
+              ) : (
+                <div className="cp-building-workers">
+                  工人: {b.workers.length}/{b.max_workers}
+                </div>
+              )}
             </div>
           ))}
           {overview.buildings.length === 0 && (
             <div className="am-empty">暂无建筑</div>
           )}
         </div>
+
+        {/* 建造按钮 */}
+        <button className="cp-construct-btn" onClick={() => { setShowConstruct(true); setConstructMsg(''); setConstructErr('') }}>
+          建造新建筑
+        </button>
+        {constructMsg && <div className="cp-message success">{constructMsg}</div>}
+
+        {/* 建造对话框 */}
+        {showConstruct && (
+          <div className="cp-construct-dialog">
+            <div className="cp-section-title">建造新建筑</div>
+            <div className="cp-construct-form">
+              <label>
+                类型:
+                <select value={constructType} onChange={e => setConstructType(e.target.value as 'farm' | 'mill')}>
+                  <option value="farm">农田 (wood=10, stone=5, 工期3天)</option>
+                  <option value="mill">磨坊 (wood=15, stone=10, 工期5天)</option>
+                </select>
+              </label>
+              <label>
+                名称:
+                <input
+                  type="text"
+                  value={constructName}
+                  onChange={e => setConstructName(e.target.value)}
+                  placeholder="输入建筑名称"
+                />
+              </label>
+              <label>
+                建造者:
+                <select value={constructBuilderId} onChange={e => setConstructBuilderId(Number(e.target.value))}>
+                  <option value={0}>选择建造者...</option>
+                  {agents.map(a => (
+                    <option key={a.id} value={a.id}>{a.name}</option>
+                  ))}
+                </select>
+              </label>
+              <div className="cp-construct-actions">
+                <button
+                  className="cp-assign-btn"
+                  disabled={constructing || !constructName.trim() || constructBuilderId <= 0}
+                  onClick={handleConstruct}
+                >
+                  {constructing ? '建造中...' : '确认建造'}
+                </button>
+                <button className="cp-back-btn" onClick={() => setShowConstruct(false)}>取消</button>
+              </div>
+              {constructErr && <div className="cp-message error">{constructErr}</div>}
+            </div>
+          </div>
+        )}
 
         {/* 居民状态 */}
         <div className="cp-section-title">居民状态</div>

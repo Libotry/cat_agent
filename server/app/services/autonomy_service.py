@@ -21,7 +21,7 @@ from .work_service import work_service
 from .shop_service import shop_service
 from .economy_service import economy_service
 from .agent_runner import runner_manager
-from .city_service import assign_worker, remove_worker, eat_food, get_agent_resources
+from .city_service import assign_worker, remove_worker, eat_food, get_agent_resources, construct_building, BUILDING_RECIPES
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ AUTONOMY_MODEL = "wakeup-model"  # 复用免费小模型做决策
 SYSTEM_PROMPT = """你是虚拟城市模拟器。根据世界状态为每个居民决定行为。
 
 规则：
-1. 行为：checkin（打卡）、purchase（购买）、chat（聊天）、rest（休息）、assign_building（应聘建筑）、unassign_building（离职）、eat（吃饭）、transfer_resource（转赠资源）、create_market_order（挂单交易）、accept_market_order（接单交易）、cancel_market_order（撤单）
+1. 行为：checkin（打卡）、purchase（购买）、chat（聊天）、rest（休息）、assign_building（应聘建筑）、unassign_building（离职）、eat（吃饭）、transfer_resource（转赠资源）、create_market_order（挂单交易）、accept_market_order（接单交易）、cancel_market_order（撤单）、construct_building（建造建筑）
 2. 已打卡不能重复；余额不足不能购买；行为符合性格
 3. rest 是合理选择，不必所有人都行动
 4. 饱腹度低时优先 eat；体力低时优先 rest；无工作时考虑 assign_building
@@ -43,11 +43,12 @@ SYSTEM_PROMPT = """你是虚拟城市模拟器。根据世界状态为每个居�
 7. create_market_order：资源富余时可挂单交易，以物易物
 8. accept_market_order：看到合适的挂单可以接单，支持部分购买（buy_ratio 0~1）
 9. cancel_market_order：挂单长时间无人接可撤单
+10. construct_building：当有足够 wood/stone 且城市需要更多建筑时可建造（farm 需 wood=10 stone=5 工期3天；mill 需 wood=15 stone=10 工期5天）
 
 直接输出纯 JSON 数组，不要解释，不要 markdown，不要思考过程。示例：
 [{"agent_id": 1, "action": "transfer_resource", "params": {"to_agent_id": 2, "resource_type": "flour", "quantity": 3}, "reason": "Bob 没有面粉，分一些给他"}]
 
-params: checkin={}, purchase={"item_id": <int>}, chat={}, rest={}, assign_building={"building_id": <int>}, unassign_building={}, eat={}, transfer_resource={"to_agent_id": <int>, "resource_type": "<str>", "quantity": <number>}, create_market_order={"sell_type": "<str>", "sell_amount": <number>, "buy_type": "<str>", "buy_amount": <number>}, accept_market_order={"order_id": <int>, "buy_ratio": <number>}, cancel_market_order={"order_id": <int>}"""
+params: checkin={}, purchase={"item_id": <int>}, chat={}, rest={}, assign_building={"building_id": <int>}, unassign_building={}, eat={}, transfer_resource={"to_agent_id": <int>, "resource_type": "<str>", "quantity": <number>}, create_market_order={"sell_type": "<str>", "sell_amount": <number>, "buy_type": "<str>", "buy_amount": <number>}, accept_market_order={"order_id": <int>, "buy_ratio": <number>}, cancel_market_order={"order_id": <int>}, construct_building={"building_type": "<farm|mill>", "name": "<str>"}"""
 
 
 async def build_world_snapshot(db: AsyncSession) -> str:
@@ -146,9 +147,27 @@ async def build_world_snapshot(db: AsyncSession) -> str:
             .where(BuildingWorker.building_id == b.id)
         )
         w_count = w_count_result.scalar() or 0
+        if getattr(b, 'status', 'active') == "constructing":
+            started = b.construction_started_at
+            if started:
+                if started.tzinfo is None:
+                    started = started.replace(tzinfo=timezone.utc)
+                elapsed = (now - started).days
+                remaining = max(0, b.construction_days - elapsed)
+                status_tag = f" [建造中，剩余 {remaining} 天]"
+            else:
+                status_tag = " [建造中]"
+        else:
+            status_tag = ""
         building_lines.append(
-            f"- ID={b.id} {b.name}({b.building_type}): {w_count}/{b.max_workers}人"
+            f"- ID={b.id} {b.name}({b.building_type}): {w_count}/{b.max_workers}人{status_tag}"
         )
+
+    # 8.1 可建造建筑类型
+    recipe_lines = []
+    for btype, recipe in BUILDING_RECIPES.items():
+        cost_str = ", ".join(f"{k}={v}" for k, v in recipe["cost"].items())
+        recipe_lines.append(f"- {btype}: 需要 {cost_str}，工期 {recipe['construction_days']} 天")
 
     # 9. 上一轮行为
     async with _round_log_lock:
@@ -185,6 +204,9 @@ async def build_world_snapshot(db: AsyncSession) -> str:
 
 == 城市建筑 ==
 {chr(10).join(building_lines)}
+
+== 可建造建筑 ==
+{chr(10).join(recipe_lines)}
 
 == 交易市场 ==
 {chr(10).join(market_lines)}
@@ -254,7 +276,7 @@ async def decide(snapshot: str) -> list[dict]:
                 continue
             if "agent_id" not in d or "action" not in d:
                 continue
-            if d["action"] not in ("checkin", "purchase", "chat", "rest", "assign_building", "unassign_building", "eat", "transfer_resource", "create_market_order", "accept_market_order", "cancel_market_order"):
+            if d["action"] not in ("checkin", "purchase", "chat", "rest", "assign_building", "unassign_building", "eat", "transfer_resource", "create_market_order", "accept_market_order", "cancel_market_order", "construct_building"):
                 d["action"] = "rest"
             valid.append(d)
 
@@ -445,6 +467,20 @@ async def execute_decisions(decisions: list[dict], db: AsyncSession) -> dict:
                         await _broadcast_action(agent_name, aid, "cancel_market_order", reason)
                     else:
                         logger.info("Autonomy cancel_market_order failed for %s: %s", agent_name, res["reason"])
+                        stats["failed"] += 1
+                else:
+                    stats["failed"] += 1
+
+            elif action == "construct_building":
+                building_type = params.get("building_type")
+                bname = params.get("name")
+                if building_type and bname:
+                    res = await construct_building(aid, building_type, bname, "长安", db=db)
+                    if res["ok"]:
+                        stats["success"] += 1
+                        await _broadcast_action(agent_name, aid, "construct_building", reason)
+                    else:
+                        logger.info("Autonomy construct_building failed for %s: %s", agent_name, res["reason"])
                         stats["failed"] += 1
                 else:
                     stats["failed"] += 1

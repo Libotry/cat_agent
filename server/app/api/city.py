@@ -29,6 +29,7 @@ from ..services.city_service import (
     get_city_overview, get_buildings, get_building_detail,
     assign_worker, remove_worker, get_resources, eat_food, get_production_logs,
     get_agent_resources, transfer_resource, production_tick, daily_attribute_decay,
+    construct_building, BUILDING_RECIPES,
 )
 from ..services.market_service import (
     create_order, accept_order, cancel_order, list_orders, get_trade_logs,
@@ -39,6 +40,12 @@ router = APIRouter(tags=["city"])
 
 class WorkerRequest(BaseModel):
     agent_id: int
+
+
+class ConstructRequest(BaseModel):
+    builder_id: int
+    building_type: str
+    name: str
 
 
 class TransferRequest(BaseModel):
@@ -56,6 +63,40 @@ async def city_overview(city: str, db: AsyncSession = Depends(get_db)):
 @router.get("/cities/{city}/buildings")
 async def buildings_list(city: str, db: AsyncSession = Depends(get_db)):
     return await get_buildings(city, db)
+
+
+@router.post("/cities/{city}/buildings/construct")
+async def construct(city: str, req: ConstructRequest, db: AsyncSession = Depends(get_db)):
+    result = await construct_building(req.builder_id, req.building_type, req.name, city, db=db)
+    if not result["ok"]:
+        raise HTTPException(400, result["reason"])
+    return result
+
+
+@router.get("/cities/{city}/buildings/constructing")
+async def constructing_list(city: str, db: AsyncSession = Depends(get_db)):
+    from ..models import Building
+    from sqlalchemy import select
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc)
+    result = await db.execute(
+        select(Building).where(Building.city == city, Building.status == "constructing")
+    )
+    items = []
+    for b in result.scalars().all():
+        started = b.construction_started_at
+        if started and started.tzinfo is None:
+            started = started.replace(tzinfo=timezone.utc)
+        elapsed = (now - started).days if started else 0
+        items.append({
+            "id": b.id, "name": b.name, "building_type": b.building_type,
+            "builder_id": b.builder_id,
+            "construction_started_at": str(b.construction_started_at) if b.construction_started_at else None,
+            "construction_days": b.construction_days,
+            "progress_days": min(elapsed, b.construction_days),
+            "estimated_completion_days": max(0, b.construction_days - elapsed),
+        })
+    return items
 
 
 @router.get("/cities/{city}/buildings/{building_id}")

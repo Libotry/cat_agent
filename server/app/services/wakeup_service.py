@@ -111,8 +111,8 @@ class WakeupService:
             if aid != message.agent_id and aid != 0:
                 wake_list.append(aid)
 
-        # 2. 人类消息 → 小模型选 1 个 Agent
-        if message.sender_type == "human":
+        # 2. 人类消息且无 @提及 → 小模型选 1 个 Agent
+        if message.sender_type == "human" and not wake_list:
             selected = await self._select_responder(message, online_agent_ids, db)
             if selected and selected not in wake_list:
                 wake_list.append(selected)

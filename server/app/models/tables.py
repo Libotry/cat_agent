@@ -185,6 +185,10 @@ class Building(Base):
     owner = Column(String(64), default="公共")
     max_workers = Column(Integer, default=3)
     description = Column(Text, default="")
+    status = Column(String(16), default="active")          # active / constructing / destroyed
+    construction_started_at = Column(DateTime, nullable=True)  # 开工时间
+    construction_days = Column(Integer, default=0)           # 总工期（天）
+    builder_id = Column(Integer, ForeignKey("agents.id"), nullable=True)  # 建造者
     created_at = Column(DateTime, server_default=func.now())
 
 

@@ -169,4 +169,37 @@ tool_registry.register(CREATE_MARKET_ORDER_TOOL)
 tool_registry.register(ACCEPT_MARKET_ORDER_TOOL)
 tool_registry.register(CANCEL_MARKET_ORDER_TOOL)
 
+
+# --- M6.1 建造建筑工具 ---
+
+async def _handle_construct_building(arguments: dict, context: dict) -> dict:
+    """construct_building handler。builder_id 从 context 取。"""
+    from .city_service import construct_building
+    db = context["db"]
+    builder_id = context["agent_id"]
+    return await construct_building(
+        builder_id=builder_id,
+        building_type=arguments["building_type"],
+        name=arguments["name"],
+        city="长安",
+        db=db,
+    )
+
+
+CONSTRUCT_BUILDING_TOOL = ToolDefinition(
+    name="construct_building",
+    description="建造新建筑（农田或磨坊），消耗个人资源，需要等待工期完成",
+    parameters={
+        "type": "object",
+        "properties": {
+            "building_type": {"type": "string", "enum": ["farm", "mill"], "description": "建筑类型"},
+            "name": {"type": "string", "description": "建筑名称"},
+        },
+        "required": ["building_type", "name"],
+    },
+    handler=_handle_construct_building,
+)
+
+tool_registry.register(CONSTRUCT_BUILDING_TOOL)
+
 # TODO: 假设所有模型支持 function calling，后续按需补降级逻辑

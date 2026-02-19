@@ -1,11 +1,28 @@
 """城市经济服务"""
 import logging
+from datetime import datetime, timezone
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from ..models import Agent, Building, BuildingWorker, Resource, AgentResource, ProductionLog
 
 HUMAN_ID = 0
 logger = logging.getLogger(__name__)
+
+# M6.1 建造配方
+BUILDING_RECIPES = {
+    "farm": {
+        "cost": {"wood": 10, "stone": 5},
+        "construction_days": 3,
+        "max_workers": 3,
+        "description": "农田，每日每工人产出 10 小麦",
+    },
+    "mill": {
+        "cost": {"wood": 15, "stone": 10},
+        "construction_days": 5,
+        "max_workers": 2,
+        "description": "磨坊，每日每工人消耗 5 小麦产出 3 面粉",
+    },
+}
 
 
 async def _broadcast_city_event(event: str, data: dict):
@@ -16,6 +33,88 @@ async def _broadcast_city_event(event: str, data: dict):
         "type": "system_event",
         "data": {"event": event, "timestamp": datetime.now(timezone.utc).isoformat(), **data},
     })
+
+
+async def construct_building(
+    builder_id: int, building_type: str, name: str, city: str, *, db: AsyncSession
+) -> dict:
+    """发起建造：校验配方 → 扣资源 → 创建 constructing 状态建筑"""
+    recipe = BUILDING_RECIPES.get(building_type)
+    if not recipe:
+        return {"ok": False, "reason": f"不支持建造 {building_type}，可建造: {', '.join(BUILDING_RECIPES)}"}
+
+    # 校验建造者个人资源
+    for res_type, needed in recipe["cost"].items():
+        ar = await _get_or_create_agent_resource(builder_id, res_type, db)
+        available = ar.quantity - ar.frozen_amount
+        if available < needed:
+            return {"ok": False, "reason": f"{res_type} 不足，需要 {needed}，可用 {available}"}
+
+    # 扣除资源
+    for res_type, needed in recipe["cost"].items():
+        ar = await _get_or_create_agent_resource(builder_id, res_type, db)
+        ar.quantity -= needed
+
+    # 创建建筑
+    now = datetime.now(timezone.utc)
+    builder = await db.get(Agent, builder_id)
+    building = Building(
+        name=name,
+        building_type=building_type,
+        city=city,
+        owner=builder.name if builder else f"Agent#{builder_id}",
+        max_workers=recipe["max_workers"],
+        description=recipe["description"],
+        status="constructing",
+        construction_started_at=now,
+        construction_days=recipe["construction_days"],
+        builder_id=builder_id,
+    )
+    db.add(building)
+    await db.flush()
+
+    estimated = recipe["construction_days"]
+    await db.commit()
+
+    await _broadcast_city_event("building_construction_started", {
+        "building_id": building.id,
+        "building_type": building_type,
+        "name": name,
+        "builder_id": builder_id,
+        "construction_days": estimated,
+    })
+
+    return {
+        "ok": True,
+        "building_id": building.id,
+        "estimated_completion_days": estimated,
+        "reason": f"开始建造 {name}，工期 {estimated} 天",
+    }
+
+
+async def check_construction_progress(city: str, db: AsyncSession):
+    """检查 constructing 建筑，工期到了改为 active"""
+    now = datetime.now(timezone.utc)
+    result = await db.execute(
+        select(Building).where(Building.city == city, Building.status == "constructing")
+    )
+    for building in result.scalars().all():
+        if not building.construction_started_at:
+            continue
+        started = building.construction_started_at
+        if started.tzinfo is None:
+            started = started.replace(tzinfo=timezone.utc)
+        elapsed_days = (now - started).days
+        if elapsed_days >= building.construction_days:
+            building.status = "active"
+            logger.info("建造完成: %s (ID=%d)，工期 %d 天", building.name, building.id, building.construction_days)
+            await _broadcast_city_event("building_completed", {
+                "building_id": building.id,
+                "name": building.name,
+                "building_type": building.building_type,
+                "builder_id": building.builder_id,
+            })
+    await db.flush()
 
 
 async def _get_or_create_agent_resource(agent_id: int, resource_type: str, db: AsyncSession) -> AgentResource:
@@ -112,6 +211,10 @@ async def get_buildings(city: str, db: AsyncSession) -> list[dict]:
             "id": b.id, "name": b.name, "building_type": b.building_type,
             "city": b.city, "owner": b.owner, "max_workers": b.max_workers,
             "description": b.description, "workers": workers,
+            "status": b.status,
+            "construction_started_at": str(b.construction_started_at) if b.construction_started_at else None,
+            "construction_days": b.construction_days,
+            "builder_id": b.builder_id,
         })
     return buildings
 
@@ -134,6 +237,10 @@ async def get_building_detail(city: str, building_id: int, db: AsyncSession) -> 
         "id": b.id, "name": b.name, "building_type": b.building_type,
         "city": b.city, "owner": b.owner, "max_workers": b.max_workers,
         "description": b.description, "workers": workers,
+        "status": b.status,
+        "construction_started_at": str(b.construction_started_at) if b.construction_started_at else None,
+        "construction_days": b.construction_days,
+        "builder_id": b.builder_id,
     }
 
 
@@ -142,6 +249,10 @@ async def assign_worker(city: str, building_id: int, agent_id: int, db: AsyncSes
     b = await db.get(Building, building_id)
     if not b or b.city != city:
         return {"ok": False, "reason": "建筑不存在"}
+
+    # M6.1: 拒绝分配工人到建造中的建筑
+    if b.status != "active":
+        return {"ok": False, "reason": "建筑尚未建成，无法分配工人"}
 
     # 检查工位是否已满
     count_result = await db.execute(
@@ -244,11 +355,14 @@ async def production_tick(city: str, db: AsyncSession):
     - 官府田：每个工人直接产出 5 面粉（虚空造币，无需原料）
     - 体力检查：stamina < 20 跳过生产；生产后 stamina -= 15
     """
+    # M6.1: 先检查建造进度
+    await check_construction_progress(city, db)
+
     # 1. 农田生产
     farm_result = await db.execute(
         select(Building, BuildingWorker)
         .join(BuildingWorker, BuildingWorker.building_id == Building.id)
-        .where(Building.city == city, Building.building_type == "farm")
+        .where(Building.city == city, Building.building_type == "farm", Building.status == "active")
     )
     for building, worker in farm_result.all():
         agent = await db.get(Agent, worker.agent_id)
@@ -269,7 +383,7 @@ async def production_tick(city: str, db: AsyncSession):
     mill_result = await db.execute(
         select(Building, BuildingWorker)
         .join(BuildingWorker, BuildingWorker.building_id == Building.id)
-        .where(Building.city == city, Building.building_type == "mill")
+        .where(Building.city == city, Building.building_type == "mill", Building.status == "active")
     )
     for building, worker in mill_result.all():
         agent = await db.get(Agent, worker.agent_id)
@@ -295,7 +409,7 @@ async def production_tick(city: str, db: AsyncSession):
     gov_farm_result = await db.execute(
         select(Building, BuildingWorker)
         .join(BuildingWorker, BuildingWorker.building_id == Building.id)
-        .where(Building.city == city, Building.building_type == "gov_farm")
+        .where(Building.city == city, Building.building_type == "gov_farm", Building.status == "active")
     )
     for building, worker in gov_farm_result.all():
         agent = await db.get(Agent, worker.agent_id)

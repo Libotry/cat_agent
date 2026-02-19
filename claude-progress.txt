@@ -5,12 +5,19 @@
 
 ## 当前状态
 
-- **阶段**: M5.2 完成（交易市场 — 挂单/接单/撤单，ST 16/16 全绿）
+- **阶段**: M6.1 完成（建造系统 — 建造/建造中列表/工期验证，ST 9/9 全绿）
 - **技术栈**: FastAPI + WebSocket | React + Vite | SQLite + NumPy + 硅基流动 Embedding API
 - **仓库**: https://github.com/zuiho-kai/bot_civ
-- **测试**: UT 211/211 全绿 + M5.2 ST 16/16 全绿
+- **测试**: UT 211/211 全绿 + M6.1 ST 9/9 全绿
 
 ## 最近活动
+
+### 2026-02-21
+- M6.1 建造系统完成：ST 9/9 全绿 + pytest 211/211 全绿
+  - 后端：`city_service.py`（建造配方+construct）、`city.py`（construct/constructing 路由）、`autonomy_service.py`（建筑快照动态工期）、`tool_registry.py`（construct_building 工具）
+  - 前端：`CityPanel.tsx`（建造 UI）、`types.ts`/`api.ts`（类型+API）
+  - Code Review 1 轮，P0/P1 归零（P1: 建筑快照硬编码工期 → 动态计算）
+  - 新增 dev API: `set-resource`（ST 环境资源准备）
 
 ### 2026-02-20
 - M5.2 交易市场完成：ST 16/16 全绿 + pytest 211/211 全绿
@@ -52,7 +59,8 @@
 - M4 ✅: Agent 自主行为（E2E 验证通过）
 - M5 ✅: 记忆系统 + 城市经济（全功能 + E2E 验证）
 - M5.1 ✅: 资源转赠 + Tool Use（ST 8/8 全绿）
-- M5.2 待定: 交易市场（挂单/接单/撤单）
+- M5.2 ✅: 交易市场（挂单/接单/撤单，ST 16/16 全绿）
+- M6.1 ✅: 建造系统（建造/工期/建造中列表，ST 9/9 全绿）
 - M6 待定: Agent CLI 运行时（持久进程 + 上网 + 任意工具）
 
 ## 遗留

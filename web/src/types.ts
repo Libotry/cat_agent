@@ -46,7 +46,7 @@ export interface WsNewMessage {
 export interface WsSystemEvent {
   type: 'system_event'
   data: {
-    event: 'agent_online' | 'agent_offline' | 'checkin' | 'purchase' | 'agent_action' | 'resource_transferred'
+    event: 'agent_online' | 'agent_offline' | 'checkin' | 'purchase' | 'agent_action' | 'resource_transferred' | 'building_construction_started' | 'building_completed'
     agent_id: number
     agent_name: string
     timestamp: string
@@ -166,6 +166,10 @@ export interface Building {
   owner: string
   max_workers: number
   workers: WorkerInfo[]
+  status?: 'active' | 'constructing' | 'destroyed'
+  construction_started_at?: string | null
+  construction_days?: number
+  builder_id?: number | null
 }
 
 export interface CityAgentStatus {

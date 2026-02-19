@@ -217,6 +217,16 @@ async def dev_set_credits(agent_id: int, credits: int, quota_used: int | None = 
     return {"ok": True, "agent_id": agent_id, "credits": credits}
 
 
+@router.post("/set-resource")
+async def dev_set_resource(agent_id: int, resource_type: str, quantity: float, db: AsyncSession = Depends(get_db)):
+    """开发用：直接设置 Agent 个人资源数量（用于 ST 环境准备）"""
+    from ..services.city_service import _get_or_create_agent_resource
+    ar = await _get_or_create_agent_resource(agent_id, resource_type, db)
+    ar.quantity = quantity
+    await db.commit()
+    return {"ok": True, "agent_id": agent_id, "resource_type": resource_type, "quantity": quantity}
+
+
 @router.post("/trigger-autonomy")
 async def trigger_autonomy():
     """手动触发一次 autonomy tick（跳过定时器等待）"""

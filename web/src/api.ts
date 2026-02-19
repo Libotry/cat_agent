@@ -441,3 +441,24 @@ export async function fetchTradeLogs(limit = 20, offset = 0): Promise<TradeLog[]
   if (!res.ok) throw new Error(`fetchTradeLogs: ${res.status}`)
   return res.json()
 }
+
+// --- Construction API (M6.1) ---
+
+export async function constructBuilding(
+  city: string,
+  builderId: number,
+  buildingType: string,
+  name: string,
+): Promise<{ ok: boolean; reason: string; building_id?: number; estimated_completion_days?: number }> {
+  if (await useMock()) return { ok: false, reason: 'mock_mode' }
+  const res = await fetch(`${BASE}/cities/${encodeURIComponent(city)}/buildings/construct`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ builder_id: builderId, building_type: buildingType, name }),
+  })
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ detail: res.statusText }))
+    return { ok: false, reason: body.detail ?? res.statusText }
+  }
+  return res.json()
+}
