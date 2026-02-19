@@ -28,7 +28,7 @@
 任务描述：[一句话]
 任务类型：[文档更新 / 单文件小修 / Bug修复 / 新功能里程碑]
 判断依据：[为什么是这个类型]
-对应流程：[直接改 / 直接实施→自测 / 读错题本→实施→CR→P0P1归零 / 完整门控 IR→SR→AR→串讲→测试设计→编码→CR→P0P1归零→ST]
+对应流程：[直接改 / 直接实施→自测 / 读错题本→实施→CR→P0P1归零 / 完整门控 五方脑暴→用户拍板→IR草稿→五方评审→SR→AR→串讲→测试设计→编码→CR→P0P1归零→ST]
 错题本已读：[是/否，相关条目：DEV-X, DEV-Y]
 前置检查：[上一里程碑门控是否已关闭 / 不适用]
 门禁结论：[可以开始 / 需要先完成 XXX]
@@ -41,11 +41,13 @@
 | 单文件小修 | ≤1 文件，逻辑明确 | 直接实施 → 自测 |
 | Bug 修复 | 有报错/复现，≤3 文件 | 读错题本 → 实施 → Code Review → P0/P1 归零 |
 | Code Review | 用户说"CR/code review/审代码"，代码已写完 | 读改动文件 → 产出 P0/P1/P2 → 直接修复 → 重复 CR 直到 P0/P1 归零 |
-| 新功能/里程碑 | 跨模块/用户说"M几" | **走完整门控** |
+| 新功能/里程碑 | 跨模块/用户说"M几" | **走完整门控**（两轮五方会议） |
 
 > 拿不准按"新功能"处理。
 
-**⚠️ 里程碑门控**（3 层 IR→SR→AR）→ `docs/workflows/checklist-milestone-gate.md`
+**⚠️ 里程碑门控**（两轮五方会议 + 3 层 IR→SR→AR）→ `docs/workflows/checklist-milestone-gate.md`
+- IR 阶段：第一轮五方脑暴（画饼）→ 用户拍板 → 写 IR 草稿 → 第二轮五方评审（审稿）→ 修订 → 用户确认
+- 五方团队用 TeamCreate 创建，两轮之间保持存活不释放，复用上下文
 **⚠️ 代码修改 checklist**（6 步）→ 改 .py/.ts/.tsx 前后执行 → `docs/workflows/checklist-code-change.md`
 **⚠️ ST checklist + 约束** → 跑 ST 前执行 → `docs/workflows/checklist-st.md`（含 DEV-30 环境重置）
 **⚠️ 出问题自动落盘**（归因决策树 A/B/C/D）→ P0/ST 失败/连续错误/流程违规时 → `docs/workflows/checklist-error-landing.md`
@@ -70,7 +72,7 @@ ST 状态：[未开始/已通过]
 - **方案/TDD 不等于已评审**：先提取待确认设计决策，逐个确认后才能编码
 - **动手前 Read 错题本**：通用 `error-book-dev-common.md` + 按任务类型读 backend/frontend，在代码修改 checklist 之前完成
 - **前端 API 层 checklist**（DEV-14）：改 `types.ts` 时必须打开后端 service 返回值逐字段比对（字段名/类型/可选性）；大量 UI 改动分步写分步检查，不一口气写完
-- **Write 前置检查**（DEV-8，五次复犯）：≤100 行正常 Write；>100 行先 Write 前 50 行骨架再 Edit 追加，每段 ≤50 行。任何 Write 失败 1 次 → 立即切 Bash `cat <<'EOF' > file`；Bash 也失败 → 继续拆小段。禁止同一方式连续失败超过 2 次
+- **Write 强制分步**（DEV-8，六次复犯）：≤50 行可一次 Write；>50 行必须分步 — ① Write ≤50 行骨架 ② Edit 逐段填充，每段 ≤50 行 ③ 多段 Edit 可并行发出。Write 失败 1 次 → 立即切 Bash `cat <<'EOF' > file`。禁止同一方式连续失败超过 2 次
 - **并行执行原则**：多个独立修改 → 一条消息并行发出所有 Edit；独立文件更新（CODE_MAP/progress/CLAUDE.md 等）→ 并行不串行；P0/P1 修复列表 → 逐条核销不漏项
 - **工具熔断**：同一工具连续失败 2 次同一错误 → 停下换思路，禁止第 3 次盲重试
 - **网页浏览**（DEV-31）：文档网站/SPA → 必须 Playwright（curl 拿不到 JS 渲染内容）；纯 API/静态页 → curl 可用。优先级：Playwright → jina.ai → WebFetch
@@ -89,3 +91,5 @@ ST 状态：[未开始/已通过]
 | 讨论索引 | `docs/discussions.md` |
 | PRD | `docs/PRD.md` |
 | 进度说明 | `docs/PROGRESS_FILES.md` |
+| Token 优化 | `docs/runbooks/token-optimization.md` |
+| 模型选择 | `docs/runbooks/model-selection.md` |
