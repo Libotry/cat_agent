@@ -236,18 +236,10 @@ async def main():
     print("M4 — Agent 自主行为端到端验证（真实 LLM）")
     print("=" * 60)
 
-    # 健康检查
-    try:
-        r = await CLIENT.get("/api/health")
-        if r.status_code != 200:
-            print("ERROR: 服务器未启动，请先 uvicorn main:app --port 8001")
-            return
-    except Exception:
-        print("ERROR: 无法连接服务器，请先 uvicorn main:app --port 8001")
-        return
+    async with __import__("server_utils").managed_server():
+        await _run()
 
-    print("[OK] 服务器在线")
-
+async def _run():
     # 检查 Agent 数量
     agents = await get_all_agents()
     bot_agents = [a for a in agents if a["id"] != 0]

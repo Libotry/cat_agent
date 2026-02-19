@@ -412,23 +412,7 @@ async def test_tool_use_e2e():
 
 # ─── Main ───────────────────────────────────────────────────────
 
-async def main():
-    print("=" * 60)
-    print("M5.1 — 资源转赠 + Tool Use 端到端验证")
-    print("=" * 60)
-
-    # 健康检查
-    try:
-        r = await CLIENT.get("/api/health")
-        if r.status_code != 200:
-            print("ERROR: 服务器未启动，请先 uvicorn main:app --port 8001")
-            return
-    except Exception:
-        print("ERROR: 无法连接服务器，请先 uvicorn main:app --port 8001")
-        return
-
-    print("[OK] 服务器在线")
-
+async def _run():
     # 检查 Agent 数量，不足则自动创建
     agents = await get_all_agents()
     # ST 使用的模型（必须在 MODEL_REGISTRY 中且有 API key）
@@ -500,6 +484,14 @@ async def main():
     print("=" * 60)
 
     await CLIENT.aclose()
+
+
+async def main():
+    print("=" * 60)
+    print("M5.1 — 资源转赠 + Tool Use 端到端验证")
+    print("=" * 60)
+    async with __import__("server_utils").managed_server():
+        await _run()
 
 
 if __name__ == "__main__":

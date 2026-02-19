@@ -215,21 +215,7 @@ async def test_ws_construct_broadcast(builder_id: int):
 
 # ─── Main ───────────────────────────────────────────────────────
 
-async def main():
-    print("=" * 60)
-    print("M6.1 — 建造系统端到端验证")
-    print("=" * 60)
-
-    try:
-        r = await CLIENT.get("/api/health")
-        if r.status_code != 200:
-            print("ERROR: 服务器未启动")
-            return
-    except Exception:
-        print("ERROR: 无法连接服务器")
-        return
-    print("[OK] 服务器在线")
-
+async def _run():
     agents = (await CLIENT.get("/api/agents/")).json()
     bot_agents = [a for a in agents if a["id"] != 0]
     ST_MODEL = "stepfun/step-3.5-flash"
@@ -265,6 +251,14 @@ async def main():
             print(f"  - {e}")
     print("=" * 60)
     await CLIENT.aclose()
+
+
+async def main():
+    print("=" * 60)
+    print("M6.1 — 建造系统端到端验证")
+    print("=" * 60)
+    async with __import__("server_utils").managed_server():
+        await _run()
 
 
 if __name__ == "__main__":

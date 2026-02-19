@@ -459,22 +459,7 @@ async def test_trade_logs():
 
 # ─── Main ───────────────────────────────────────────────────────
 
-async def main():
-    print("=" * 60)
-    print("M5.2 — 交易市场端到端验证")
-    print("=" * 60)
-
-    try:
-        r = await CLIENT.get("/api/health")
-        if r.status_code != 200:
-            print("ERROR: 服务器未启动，请先 uvicorn main:app --port 8001")
-            return
-    except Exception:
-        print("ERROR: 无法连接服务器，请先 uvicorn main:app --port 8001")
-        return
-
-    print("[OK] 服务器在线")
-
+async def _run():
     agents = await get_all_agents()
     ST_MODEL = "stepfun/step-3.5-flash"
 
@@ -526,6 +511,14 @@ async def main():
     print("=" * 60)
 
     await CLIENT.aclose()
+
+
+async def main():
+    print("=" * 60)
+    print("M5.2 — 交易市场端到端验证")
+    print("=" * 60)
+    async with __import__("server_utils").managed_server():
+        await _run()
 
 
 if __name__ == "__main__":
