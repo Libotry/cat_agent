@@ -3,11 +3,18 @@ import { MOCK_AGENTS, MOCK_MESSAGES, MOCK_BOUNTIES } from './mock-data'
 
 const BASE = '/api'
 
-// mock 模式：URL 带 ?mock 或后端不可用时自动启用
+// mock 模式：URL 带 ?mock 或后端不可用时自动启用（30s TTL 自动重试）
 let _useMock: boolean | null = null
+let _mockCheckedAt = 0
+const MOCK_TTL = 30_000 // 后端不可用时 30 秒后重新探测
 
 export async function useMock(): Promise<boolean> {
-  if (_useMock !== null) return _useMock
+  if (_useMock !== null) {
+    // 显式 ?mock 或后端可用时不过期；后端不可用时 30s 后重新探测
+    if (!_useMock || new URLSearchParams(location.search).has('mock')) return _useMock
+    if (Date.now() - _mockCheckedAt < MOCK_TTL) return _useMock
+    _useMock = null
+  }
   if (new URLSearchParams(location.search).has('mock')) {
     _useMock = true
     return true
@@ -18,6 +25,7 @@ export async function useMock(): Promise<boolean> {
   } catch {
     _useMock = true
   }
+  _mockCheckedAt = Date.now()
   return _useMock
 }
 
