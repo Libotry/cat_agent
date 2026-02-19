@@ -89,3 +89,10 @@
 - **根因**: Alice model=`gpt-4o-mini` 不在 MODEL_REGISTRY，`resolve_model` 返回 None → 静默
 - **修复**: 改 model 为注册表中的 `stepfun/step-3.5-flash`
 - **详细复盘**: [postmortem-dev-bug-12.md](../postmortems/postmortem-dev-bug-12.md)
+
+#### DEV-BUG-14 OpenRouter 免费模型限流导致 wakeup 静默失败
+
+- **场景**: wakeup-model 配置 `google/gemma-3-12b-it:free`，Agent 唤醒流程无响应
+- **根因**: OpenRouter 免费模型频繁 429 限流，`call_wakeup_model` 捕获异常返回 "NONE" → 静默跳过
+- **修复**: 改为付费版 `google/gemma-3-12b-it`，去掉 `:free` 后缀
+- **防范**: 免费模型只用于开发调试，生产/demo 场景必须用付费模型；wakeup 失败应有明显日志告警而非静默

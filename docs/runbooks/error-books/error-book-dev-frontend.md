@@ -69,7 +69,11 @@
 ✅ 前端改动 >2 个文件时分步写：① types+api 写完 → 对照后端签名逐字段校对 ② UI 组件写完 → 心理渲染 grid/flex 布局 ③ CSS 写完 → grep 硬编码颜色 ④ 交互写完 → 检查破坏性操作确认+表单重置
 > 根因：量大时"先全写完再说"跳过了逐步检查。DEV-8（颜色硬编码）、DEV-11（凭记忆写后端字段）同时复犯。
 
-❌ 代码生成后依赖 LLM 自检可访问性和视觉合规性
+### DEV-15 `_useMock` 单例缓存导致后端恢复后前端仍走 mock
+
+❌ `useMock()` 首次检查 `/api/health` 失败后 `_useMock = true` 被永久缓存，后端恢复后刷新页面也不重新检查（模块级变量在 HMR 下可能保留）
+✅ 方案 A：每次 WS 连接失败时重置 `_useMock = null` 强制重新探测；方案 B：加 TTL（如 30 秒后过期重新检查）；方案 C：去掉 mock 自动检测，改为显式 `?mock` 参数才启用
+> 根因：单例缓存 + 无过期机制。开发时后端重启频繁，一旦缓存为 true 就卡死在 mock 模式，WS 不连接、消息不加载。
 ✅ 代码生成后必须跑外部审查工具（Gemini 视觉审查 / Lighthouse / axe-core）
 ❌ 触摸目标 padding 随手写 5px/6px，没有 44px 最小尺寸意识
 ✅ 交互元素（button/select/input）强制 `min-height: 44px`（WCAG 2.5.8）
