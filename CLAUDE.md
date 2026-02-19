@@ -12,6 +12,10 @@
 
 1. **强制记录**：里程碑完成 → 更新 `claude-progress.txt` 顶部"最近活动"
 2. **主动查 MCP 记忆**：新 session / 报错卡点 / 设计决策前，先 MCP search 查历史
+3. **MCP 记忆写入（硬规则）**：禁止每轮对话自动调用 `add_message` 保存对话历史。只在以下场景主动写入：
+   - 用户明确说"记住…/添加记忆…"
+   - 正式开发阶段流程节点：里程碑完成、设计决策确认、五方评审结论、ST 结果等关键产出
+   - 闲聊/测试/问答等非开发流程场景一律不写入
 3. **分层进度**：小改动记 `server/progress.md`，大里程碑记 `claude-progress.txt`（详见 `docs/PROGRESS_FILES.md`）
 4. **讨论记录**：功能相关 → `docs/specs/SPEC-XXX/讨论细节/`，通用 → `docs/discussions/`。创建后必须同步更新 `docs/discussions.md` 索引
 5. **防丢失**：对话是临时的，文件是持久的
@@ -19,7 +23,7 @@
 
 ## 工作流
 
-**🚫 任务入口门禁（硬卡点）** — 七次复犯（DEV-4），入口不拦 → 出口再严也白搭：
+**🚫 任务入口门禁（硬卡点）** — 九次复犯（DEV-4），入口不拦 → 出口再严也白搭：
 
 接到任何任务后，**必须先输出入口门禁声明**，再做任何分析/读代码/写代码。不输出就动手 = 违规。
 
@@ -52,7 +56,19 @@
 **⚠️ ST checklist + 约束** → 跑 ST 前执行 → `docs/workflows/checklist-st.md`（含 DEV-30 环境重置）
 **⚠️ 出问题自动落盘**（归因决策树 A/B/C/D）→ P0/ST 失败/连续错误/流程违规时 → `docs/workflows/checklist-error-landing.md`
 
-**🚫 Phase 完成门禁（硬卡点）** — 七次复犯（DEV-4/9/17/25/26/28 + M6.1），提醒无效，靠结构强制：
+落盘前**必须先输出落盘门禁声明**，不输出就写错题本 = 违规（DEV-4 八次复犯根因：软规则无拦截）：
+
+```
+--- 落盘门禁 ---
+触发原因：[CR 发现 P0 / ST 失败 / 用户指出 / ...]
+归因路径：[A：checklist 有但跳过 / B：有但没拦住 / C：新场景 / D：架构问题]
+已 Read 目标错题本记录规则：[是，行数上限=N / 否 → 必须先 Read]
+落盘目标：[error-book-dev-backend.md / common.md / ...]
+checklist 修改：[需要改第 X 条 / 新增 / 不需要]
+---
+```
+
+**🚫 Phase 完成门禁（硬卡点）** — 九次复犯（DEV-4/9/17/25/26/28 + M6.1 + M6-落盘 + M6-CR），提醒无效，靠结构强制：
 
 测试绿之后，**必须先输出门禁声明**，再做任何其他事。不输出就写总结/更新进度/标记完成 = 违规。
 
@@ -87,7 +103,7 @@ ST 状态：[未开始/已通过]
 | 接口契约 | `docs/api-contract.md` |
 | 代码导航 | `docs/CODE_MAP.md` |
 | 角色定义 | `docs/personas/roles.md` |
-| 功能规格 | `docs/specs/SPEC-001-聊天功能/README.md` |
+| 功能规格 | `docs/specs/SPEC-001-核心系统/README.md` |
 | 讨论索引 | `docs/discussions.md` |
 | PRD | `docs/PRD.md` |
 | 进度说明 | `docs/PROGRESS_FILES.md` |
