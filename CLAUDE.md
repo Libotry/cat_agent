@@ -58,8 +58,8 @@ ST 状态：[未开始/已通过]
 - **Write 前置检查**（DEV-8）：≤100 行直接写；>100 行 Write 主体 + 最多 1-2 次 Edit 补尾，禁止碎片追加（7-8 次 Edit 必卡）；连续 2 次失败 → 切换策略
 - **并行执行原则**：多个独立修改 → 一条消息并行发出所有 Edit；独立文件更新（CODE_MAP/progress/CLAUDE.md 等）→ 并行不串行；P0/P1 修复列表 → 逐条核销不漏项
 - **工具熔断**：同一工具连续失败 2 次同一错误 → 停下换思路，禁止第 3 次盲重试
-- **网页浏览优先级**：jina.ai → Playwright → WebFetch
-- **网络代理**：WebFetch 访问失败时，走本地代理 `http://127.0.0.1:7890`（curl/Playwright 均适用）
+- **网页浏览**（DEV-31）：文档网站/SPA → 必须 Playwright（curl 拿不到 JS 渲染内容）；纯 API/静态页 → curl 可用。优先级：Playwright → jina.ai → WebFetch
+- **网络代理**（硬规则）：所有外网请求默认走 `http://127.0.0.1:7890`（curl 加 `--proxy`，Playwright 在启动时配置）。直连失败不重试，直接报错
 
 ## 速查
 
