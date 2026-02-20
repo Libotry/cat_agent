@@ -16,13 +16,14 @@ from sqlalchemy.orm import joinedload
 
 from ..core.config import resolve_model
 from ..core.database import async_session
-from ..models import Agent, Message, Job, CheckIn, VirtualItem, AgentItem, Building, BuildingWorker, AgentResource
+from ..models import Agent, Message, Job, CheckIn, VirtualItem, AgentItem, Building, BuildingWorker, AgentResource, AgentStatus
 from .work_service import work_service
 from .shop_service import shop_service
 from .economy_service import economy_service
 from .agent_runner import runner_manager
 from .city_service import assign_worker, remove_worker, eat_food, get_agent_resources, construct_building, BUILDING_RECIPES
 from .strategy_engine import Strategy, StrategyType, parse_strategies, update_strategies, get_strategies
+from .status_helper import set_agent_status
 
 logger = logging.getLogger(__name__)
 
@@ -382,6 +383,11 @@ async def execute_decisions(decisions: list[dict], db: AsyncSession, snapshot: s
             logger.warning("Autonomy execute: unknown agent_id=%s, skipping", aid)
             stats["skipped"] += 1
             continue
+
+        # F35: 状态 → EXECUTING
+        agent_obj = await db.get(Agent, aid)
+        if agent_obj and action != "rest":
+            await set_agent_status(agent_obj, AgentStatus.EXECUTING, f"执行 {action}…", db)
 
         try:
             if action == "rest":
@@ -822,6 +828,13 @@ async def tick():
             logger.info("Autonomy tick: no agents, skipping")
             return
 
+        # F35: 所有 agent → THINKING（LLM 决策中）
+        async with async_session() as db:
+            agents_result = await db.execute(select(Agent).where(Agent.id != 0))
+            all_agents = agents_result.scalars().all()
+            for agent in all_agents:
+                await set_agent_status(agent, AgentStatus.THINKING, "正在分析环境…", db)
+
         actions, strategies = await decide(snapshot)
 
         # 存储策略（全量覆盖）
@@ -849,5 +862,19 @@ async def tick():
         if strategy_stats["executed"] > 0:
             logger.info("Autonomy tick: strategies executed — %s", strategy_stats)
 
+        # F35: 所有 agent → IDLE
+        async with async_session() as db:
+            agents_result = await db.execute(select(Agent).where(Agent.id != 0))
+            for agent in agents_result.scalars().all():
+                await set_agent_status(agent, AgentStatus.IDLE, "", db)
+
     except Exception as e:
         logger.error("Autonomy tick failed: %s", e, exc_info=True)
+        # F35: 异常时也恢复 IDLE
+        try:
+            async with async_session() as db:
+                agents_result = await db.execute(select(Agent).where(Agent.id != 0))
+                for agent in agents_result.scalars().all():
+                    await set_agent_status(agent, AgentStatus.IDLE, "", db)
+        except Exception:
+            pass

@@ -56,6 +56,7 @@ class AgentOut(BaseModel):
     model: str
     avatar: str
     status: str
+    activity: str = ""
     credits: int
     speak_interval: int
     daily_free_quota: int

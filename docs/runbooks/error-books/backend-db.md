@@ -1,5 +1,10 @@
 # 错题本 — 后端/DB
 
+### 记录规则
+
+- **DEV-BUG 条目**：场景/根因/修复，各 1 行，控制在 **6 行以内**
+- 详细复盘放 `../postmortems/`，这里只放链接
+
 ### DEV-10 SQLite + async 必须用 BEGIN IMMEDIATE `🟢`
 
 ❌ 默认 `BEGIN DEFERRED`，多连接同时持有 SHARED 锁升级时死锁；fire-and-forget 写入是反模式

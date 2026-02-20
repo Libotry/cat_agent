@@ -4,15 +4,16 @@
 
 | 编号 | 一句话 | 标签 | 频率 | 文件 |
 |------|--------|------|------|------|
-| DEV-4 | 跳过流程门控直接编码 | 通用/流程 | 🔴×9 | flow-rules.md |
+| DEV-4 | 跳过流程门控直接编码 | 通用/流程 | 🔴×13 | flow-rules.md |
 | DEV-5 | 实施不遵循 TDD 文档 | 通用/流程 | 🟢 | flow-rules.md |
 | DEV-6 | 改代码不 grep 引用/不复用 pattern/不对照 TDD | 通用/流程 | 🟡×2 | flow-rules.md |
 | DEV-7 | pytest 冒充 ST / E2E 不跑 / 旧服务器没重启 | 通用/流程 | 🟡×2 | flow-rules.md |
 | DEV-24 | 更新文档只改局部不扫全文 | 通用/流程 | 🟢 | flow-rules.md |
 | DEV-29 | P0/P1 修复列表漏项+执行碎片化 | 通用/流程 | 🟢 | flow-rules.md |
 | DEV-32 | 门控表缺序号→TDD 被误当起始动作 | 通用/流程 | 🟢 | flow-rules.md |
-| DEV-33 | pytest 冒充 ST + P0/P1 归零跳过归因 | 通用/流程 | 🟡×2 | flow-rules.md |
+| DEV-33 | pytest 冒充 ST + P0/P1 归零跳过归因 | 通用/流程 | 🟡×5 | flow-rules.md |
 | DEV-34 | SR 阶段门禁当建议跳过 | 通用/流程 | 🟢 | flow-rules.md |
+| DEV-38 | 编码前跳过 AR → 安全/异常/配置全面失守 | 通用/流程 | 🟢 | flow-rules.md |
 | DEV-3 | 联调问题用双终端来回排查 | 通用/工具 | 🟢 | tool-rules.md |
 | DEV-8 | Write 工具调用反复失败 | 通用/工具 | 🔴×5 | tool-rules.md |
 | DEV-12 | 外部 CLI 跳过环境探针+串行试错 | 通用/工具 | 🟡×2 | tool-rules.md |
@@ -36,6 +37,12 @@
 | DEV-BUG-9 | batch wakeup mock 盲区 | 后端/Agent | 🟢 | backend-agent.md |
 | DEV-BUG-12 | model 字段与 REGISTRY 不匹配 | 后端/Agent | 🟢 | backend-agent.md |
 | DEV-BUG-14 | OpenRouter 免费模型限流 | 后端/Agent | 🟢 | backend-agent.md |
+| DEV-BUG-15 | price_target 空市场误判 completed + up/down 不对称 | 后端/Agent | 🟢 | backend-agent.md |
+| DEV-BUG-16 | LLM 输出 Pydantic model 缺防御性 validator | 后端/Agent | 🟢 | backend-agent.md |
+| DEV-BUG-17 | direction 反向路径逻辑不完整 + 测试只覆盖正向 | 后端/Agent | 🟢 | backend-agent.md |
+| DEV-BUG-19 | P1 修复引入新 P1 — 修 bug 时缺边界分析 | 后端/Agent | 🟢 | backend-agent.md |
+| DEV-37 | Handler 先扣费后调用外部服务，失败白扣 | 后端/Agent | 🟢 | backend-agent.md |
+| DEV-38 | M6 P2 上网工具一次性写出 P0×4+P1×7+P2×7 | 后端/Agent | 🟢 | backend-agent.md |
 | DEV-BUG-1 | Windows Python 指向 Store stub | 后端/环境 | 🟢 | backend-api-env.md |
 | DEV-BUG-3 | Team 联调端口冲突 | 后端/环境 | 🟢 | backend-api-env.md |
 | DEV-BUG-4 | Windows curl 中文 JSON 400 | 后端/环境 | 🟢 | backend-api-env.md |

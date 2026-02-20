@@ -38,7 +38,7 @@
 - 路径 B → 修改 CLAUDE.md 中对应 checklist 条目 + 错题本更新已有条目的描述
 - 路径 C → CLAUDE.md 新增 checklist 条目 + 错题本新增条目
 - 路径 D → 错题本新增条目 + 如有必要更新 TDD 审查模板
-- 所有路径：错题本写摘要（≤行数上限），按角色写入对应 `docs/runbooks/error-books/error-book-{role}.md`
+- 所有路径：错题本写摘要（≤行数上限），按模块写入对应 `docs/runbooks/error-books/{module}.md`（模块对照见 `_index.md`）
 
 ### 第 4 步：详细复盘
 

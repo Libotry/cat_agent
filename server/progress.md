@@ -7,9 +7,9 @@
 
 ## 当前状态
 
-- **当前任务**: M6 Phase 1 T4 完成 — LLM 策略触发率 100%（强制规则 prompt 优化）
-- **最近完成**: T4 强制触发测试 + 10 轮质量验证双双 100%
-- **待办优先级**: M6 Phase 2（price_target + stockpile 策略类型）
+- **当前任务**: M6 Phase 3 编码（F35 Agent 状态可视化）
+- **最近完成**: M6 Phase 1.1 完成（策略扩展，254 UT + ST 15/15 不回归，四轮独立 CR 归零）
+- **待办优先级**: M6 Phase 3 编码 → P1.2 持久化+前端
 - **阻塞问题**: 无
 
 ---
@@ -17,6 +17,28 @@
 ## 进展日志
 
 ### 2026-02-20
+
+#### M6 Phase 3 SR 确认 — F35 Agent 状态可视化
+
+**文档**：`docs/specs/SPEC-001-核心系统/M6-Agent运行时/SR-M6-Phase3.md`
+
+**三个设计决策（全部拍板）**：
+- DC-1：状态枚举 idle/thinking/executing/planning（替换 CHATTING/WORKING/RESTING）
+- DC-2：复用 system_event，新增 `agent_status_change` 事件
+- DC-3：静态颜色方案（蓝/绿/紫/灰，无脉冲动画）
+
+**范围**：
+- 后端：tables.py 枚举替换 + agent_runner.py/autonomy_service.py 状态变更插入 + WS 广播
+- 前端：types.ts 5 态 + AgentStatusPanel 排序升级 + DiscordLayout WS 处理 + ActivityFeed tool_call + CSS 颜色
+- 测试：test_agent_status.py（7 用例）+ e2e_m6_p3.py（4 ST 场景）
+
+**PM 审核**：通过（DC-3 脉冲动画改为静态蓝色，用户确认）
+
+**F34 长任务编排**：按 IR 评审结论推迟到 M6.3，已完成代码基础设施探索备用。
+
+**状态**: SR 已确认，待编码
+
+---
 
 #### M6 Phase 1 T4 完成 — LLM 策略触发率 100%
 

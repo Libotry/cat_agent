@@ -10,9 +10,9 @@ import enum
 
 class AgentStatus(str, enum.Enum):
     IDLE = "idle"
-    CHATTING = "chatting"
-    WORKING = "working"
-    RESTING = "resting"
+    THINKING = "thinking"
+    EXECUTING = "executing"
+    PLANNING = "planning"      # Phase 4 预留，Phase 3 暂不触发
 
 
 class MemoryType(str, enum.Enum):
@@ -31,6 +31,7 @@ class Agent(Base):
     model = Column(String(64), default="gpt-4o-mini")  # 使用的 LLM 模型
     avatar = Column(String(256), default="")
     status = Column(String(16), default=AgentStatus.IDLE)
+    activity = Column(String(256), default="")  # F35: 当前活动描述
     credits = Column(Integer, default=100)  # 信用点（通用货币）
     speak_interval = Column(Integer, default=60)  # 发言间隔（秒）
     daily_free_quota = Column(Integer, default=10)  # 每日免费闲聊额度

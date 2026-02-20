@@ -160,8 +160,10 @@ async def test_e2e_autonomy_websocket_event(client: AsyncClient):
                 r = await client.post("/api/dev/trigger-autonomy")
                 assert r.json()["ok"] is True
 
-            # 收到 agent_action 事件
+            # 收到 agent_action 事件（跳过 agent_status_change 事件）
             event = ws.receive_json()
+            while event.get("data", {}).get("event") == "agent_status_change":
+                event = ws.receive_json()
             assert event["type"] == "system_event"
             assert event["data"]["event"] == "agent_action"
             assert event["data"]["agent_id"] == 1

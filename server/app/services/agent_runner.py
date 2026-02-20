@@ -10,8 +10,9 @@ from openai import AsyncOpenAI
 from sqlalchemy.ext.asyncio import AsyncSession
 from ..core.config import resolve_model
 from ..core.database import async_session as session_maker
-from ..models import MemoryType
+from ..models import MemoryType, Agent, AgentStatus
 from .memory_service import memory_service
+from .status_helper import set_agent_status
 
 logger = logging.getLogger(__name__)
 
@@ -107,6 +108,17 @@ class AgentRunner:
             base_url, api_key, model_id = resolved
             client = AsyncOpenAI(api_key=api_key, base_url=base_url)
 
+            # F35: 状态 → THINKING
+            agent_obj = None
+            if db is not None:
+                try:
+                    obj = await db.get(Agent, self.agent_id)
+                    if isinstance(obj, Agent):
+                        agent_obj = obj
+                        await set_agent_status(agent_obj, AgentStatus.THINKING, "正在思考回复…", db)
+                except Exception:
+                    pass  # mock / test 环境下跳过状态更新
+
             # M5.1: Tool Use — 传入工具定义
             from .tool_registry import tool_registry
             import json as _json
@@ -127,18 +139,39 @@ class AgentRunner:
             if msg.tool_calls:
                 messages.append(msg)
                 for tc in msg.tool_calls:
+                    # F35: 状态 → EXECUTING
+                    if agent_obj:
+                        await set_agent_status(agent_obj, AgentStatus.EXECUTING, f"执行 {tc.function.name}…", db)
                     try:
                         args = _json.loads(tc.function.arguments)
                     except _json.JSONDecodeError:
                         args = {}
                     tool_context = {"agent_id": self.agent_id, "db": db}
                     result = await tool_registry.execute(tc.function.name, args, tool_context)
+                    # F35: 广播 tool_call 动作到 ActivityFeed
+                    if agent_obj:
+                        from ..api.chat import broadcast
+                        from datetime import datetime, timezone
+                        await broadcast({
+                            "type": "system_event",
+                            "data": {
+                                "event": "agent_action",
+                                "agent_id": self.agent_id,
+                                "agent_name": self.name,
+                                "action": "tool_call",
+                                "reason": f"调用 {tc.function.name}",
+                                "timestamp": datetime.now(timezone.utc).isoformat(sep=" ", timespec="seconds"),
+                            },
+                        })
                     messages.append({
                         "role": "tool",
                         "tool_call_id": tc.id,
                         "content": _json.dumps(result, ensure_ascii=False),
                     })
                 # 第二次调用：基于工具结果生成最终回复（不传 tools，防止再次触发）
+                # F35: 状态 → THINKING（继续思考）
+                if agent_obj:
+                    await set_agent_status(agent_obj, AgentStatus.THINKING, "正在整理回复…", db)
                 response = await client.chat.completions.create(
                     model=model_id,
                     messages=messages,
@@ -172,9 +205,20 @@ class AgentRunner:
             logger.info("Agent %s generated reply (len=%d)", self.name, len(reply) if reply else 0)
             if reply:
                 reply = reply.strip()
+            # F35: 状态 → IDLE
+            if agent_obj:
+                await set_agent_status(agent_obj, AgentStatus.IDLE, "", db)
             return reply, usage_info, used_memory_ids
         except Exception as e:
             logger.error("AgentRunner LLM call failed for %s: %s", self.name, e)
+            # F35: 异常时也恢复 IDLE
+            if db is not None:
+                try:
+                    agent_obj = await db.get(Agent, self.agent_id)
+                    if agent_obj:
+                        await set_agent_status(agent_obj, AgentStatus.IDLE, "", db)
+                except Exception:
+                    pass
             return None, None, []
 
 

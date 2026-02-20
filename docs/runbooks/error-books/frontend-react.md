@@ -1,5 +1,10 @@
 # 错题本 — 前端/React
 
+### 记录规则
+
+- **条目只写核心规则**（❌/✅/一句话解释），控制在 **5 行以内**
+- 详细复盘放 `../postmortems/`，这里只放链接
+
 ### DEV-9 useEffect 外部连接必须幂等 `🟢`
 
 ❌ useEffect 里直接 `new WebSocket()`，没考虑 StrictMode 双挂载导致重复创建

@@ -1,5 +1,11 @@
 # 错题本 — 后端/Agent
 
+### 记录规则
+
+- **DEV-BUG 条目**：场景/根因/修复/防范，各 1-2 行，控制在 **8 行以内**
+- **DEV 条目**：❌/✅/一句话解释，控制在 **5 行以内**
+- 详细复盘放 `../postmortems/`，这里只放链接
+
 ### DEV-11 跨模块语义假设不一致（"在线"定义） `🟢`
 
 ❌ 模块 A 改变了核心概念含义（Agent 从"自己连 WebSocket"变成"服务端驱动"），依赖该概念的模块 B 没同步更新
@@ -42,8 +48,40 @@
 
 #### DEV-BUG-14 OpenRouter 免费模型限流导致 wakeup 静默失败 `🟢`
 
-- **场景**: wakeup-model 配置 `google/gemma-3-12b-it:free`，Agent 唤醒流程无响应
-- **根因**: OpenRouter 免费模型频繁 429 限流，`call_wakeup_model` 捕获异常返回 "NONE" → 静默跳过
-- **修复**: 改为付费版 `google/gemma-3-12b-it`，去掉 `:free` 后缀
-- **防范**: 免费模型只用于开发调试，生产/demo 场景必须用付费模型
-- **调用放大问题**: 1 条 @3人消息 → 7~9 次/分钟，直接撞 20 RPM 墙
+- **场景**: wakeup-model 配置 `:free` 后缀模型，唤醒无响应
+- **根因**: 免费模型 429 限流 + 异常被吞返回 "NONE"；@多人消息有调用放大（1条→7~9次/分钟）
+- **修复**: 改付费模型。**防范**：免费模型只用于开发调试
+
+#### DEV-BUG-15 price_target "up" 空市场误判 completed + up/down 不对称 `🟢`
+
+- **场景**: price_target(direction="up") 策略在无市场挂单时
+- **根因**: up 分支 else 直接 completed+continue → 挂卖代码不可达（死代码）；down 分支无 else → fall through 到挂卖（偶然正确）
+- **修复**: 统一 up/down — 有市场数据且达标 → completed，否则 fall through 到挂卖。消除重复代码
+- **防范**: 自己审自己审不出逻辑死代码，CR 必须用独立 agent
+
+#### DEV-BUG-16 LLM 输出 Pydantic model 缺防御性 validator `🟢`
+
+- **场景**: Strategy model 接收 LLM JSON，direction/priority/ttl 无防御
+- **根因**: LLM 输出大小写不一致、数值为字符串，Pydantic 不自动 coerce
+- **修复**: 枚举字段加 normalize validator，数值字段加 coerce，字符串加 strip
+- **防范规则已提升至 CLAUDE.md**（DEV-BUG-16 条目）。归因 C
+
+#### DEV-BUG-17 direction 反向路径逻辑不完整 + 测试只覆盖正向 `🟢`
+
+- **场景**: price_target 分支只实现了 up 方向，down 的两个边界未处理
+- **根因**: 编码时未列分支矩阵（direction × 市场状态），测试只覆盖 up happy path
+- **修复**: 补 down 分支逻辑 + 7 个测试覆盖 down/空市场/TTL
+- **防范规则已提升至 CLAUDE.md**（DEV-BUG-17 分支矩阵全覆盖）。归因 C
+
+### DEV-37 Handler 先扣费后调用外部服务，失败白扣 `🟢`
+
+❌ `_handle_web_search` 先扣 credits 再 await 外部调用，超时/失败时已扣费
+✅ 乐观预检 + 悲观扣费：预检余额 → 调用外部服务 → 成功后扣费 + flush
+> CR checklist 增加"副作用时序检查：扣费/计数是否在成功路径上"
+
+#### DEV-BUG-19 P1 修复引入新 P1 — 修 bug 时缺边界分析 `🟢`
+
+- **场景**: 修复 8 条 P1 后三次 CR 又冒出 8 条新 P1
+- **根因**: P1 修复当"小修"，未对新代码做边界分析（null/作用域/mock）
+- **修复**: coerce_int 处理 null；min_price 统一作用域；TTL mock time；补 4 个边界测试
+- **防范**: 每条修复必须列影响面 + 边界值分析 + 分支矩阵测试。归因 B
