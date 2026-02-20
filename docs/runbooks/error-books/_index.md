@@ -14,6 +14,8 @@
 | DEV-33 | pytest 冒充 ST + P0/P1 归零跳过归因 | 通用/流程 | 🟡×5 | flow-rules.md |
 | DEV-34 | SR 阶段门禁当建议跳过 | 通用/流程 | 🟢 | flow-rules.md |
 | DEV-38 | 编码前跳过 AR → 安全/异常/配置全面失守 | 通用/流程 | 🟢 | flow-rules.md |
+| DEV-40 | 功能设计脱离基础设施现实 | 通用/流程 | 🟢 | flow-rules.md |
+| DEV-41 | 用户要求拉角色但不读角色定义文件 | 通用/流程 | 🟢 | flow-rules.md |
 | DEV-3 | 联调问题用双终端来回排查 | 通用/工具 | 🟢 | tool-rules.md |
 | DEV-8 | Write 工具调用反复失败 | 通用/工具 | 🔴×5 | tool-rules.md |
 | DEV-12 | 外部 CLI 跳过环境探针+串行试错 | 通用/工具 | 🟡×2 | tool-rules.md |
