@@ -1,3 +1,13 @@
+export interface SoulPersonality {
+  values?: string[]
+  speaking_style?: string
+  knowledge_domains?: string[]
+  emotional_tendency?: string
+  catchphrases?: string[]
+  relationships?: Record<string, string>
+  taboos?: string[]
+}
+
 export interface Agent {
   id: number
   name: string
@@ -13,6 +23,7 @@ export interface Agent {
   satiety: number
   mood: number
   stamina: number
+  personality_json?: SoulPersonality | null
 }
 
 export interface Channel {

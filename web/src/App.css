@@ -634,6 +634,31 @@
   margin-bottom: 8px;
 }
 
+.ac-soul {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  background: var(--bg-secondary, #f5f5f5);
+  border-radius: 6px;
+  padding: 6px 10px;
+  margin-bottom: 8px;
+  word-break: break-word;
+}
+
+.ac-soul-row {
+  margin-bottom: 4px;
+}
+
+.ac-soul-label {
+  font-weight: 600;
+  margin-right: 6px;
+  color: var(--text-heading);
+}
+
+.ac-soul-rel-list {
+  margin-top: 2px;
+  padding-left: 4px;
+}
+
 .ac-meta {
   display: flex;
   gap: 16px;

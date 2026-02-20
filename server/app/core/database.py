@@ -53,11 +53,20 @@ async def _migrate_satiety_mood(conn):
         await conn.execute(text("ALTER TABLE agents ADD COLUMN stamina INTEGER DEFAULT 100"))
 
 
+async def _migrate_personality_json(conn):
+    """M6.2 迁移：给 agents 表加 personality_json 字段"""
+    result = await conn.execute(text("PRAGMA table_info(agents)"))
+    columns = [row[1] for row in result.fetchall()]
+    if "personality_json" not in columns:
+        await conn.execute(text("ALTER TABLE agents ADD COLUMN personality_json JSON"))
+
+
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
         await _migrate_bot_token(conn)
         await _migrate_satiety_mood(conn)
+        await _migrate_personality_json(conn)
 
 
 async def get_db():

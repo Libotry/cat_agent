@@ -41,10 +41,44 @@ export function AgentManager() {
 }
 
 function AgentCard({ agent }: { agent: Agent }) {
+  const pj = agent.personality_json
   return (
     <div className="agent-card">
       <div className="ac-name">{agent.name}</div>
       <div className="ac-persona">{agent.persona}</div>
+      {pj && Object.keys(pj).length > 0 && (
+        <div className="ac-soul">
+          {pj.values && pj.values.length > 0 && (
+            <div className="ac-soul-row"><span className="ac-soul-label">价值观</span>{pj.values.join('、')}</div>
+          )}
+          {pj.speaking_style && (
+            <div className="ac-soul-row"><span className="ac-soul-label">说话风格</span>{pj.speaking_style}</div>
+          )}
+          {pj.knowledge_domains && pj.knowledge_domains.length > 0 && (
+            <div className="ac-soul-row"><span className="ac-soul-label">擅长领域</span>{pj.knowledge_domains.join('、')}</div>
+          )}
+          {pj.emotional_tendency && (
+            <div className="ac-soul-row"><span className="ac-soul-label">情感倾向</span>{pj.emotional_tendency}</div>
+          )}
+          {pj.catchphrases && pj.catchphrases.length > 0 && (
+            <div className="ac-soul-row"><span className="ac-soul-label">口头禅</span>{pj.catchphrases.map(c => `"${c}"`).join('、')}</div>
+          )}
+          {pj.relationships && Object.keys(pj.relationships).length > 0 && (
+            <div className="ac-soul-row">
+              <span className="ac-soul-label">关系</span>
+              {Object.keys(pj.relationships).length <= 3
+                ? Object.entries(pj.relationships).map(([k, v]) => `${k}:${v}`).join('、')
+                : <div className="ac-soul-rel-list">{Object.entries(pj.relationships).map(([k, v]) => (
+                    <div key={k}>{k}：{v}</div>
+                  ))}</div>
+              }
+            </div>
+          )}
+          {pj.taboos && pj.taboos.length > 0 && (
+            <div className="ac-soul-row"><span className="ac-soul-label">禁区</span>{pj.taboos.join('、')}</div>
+          )}
+        </div>
+      )}
       <div className="ac-meta">
         <span>模型: {agent.model}</span>
         <span>信用点: {agent.credits}</span>
