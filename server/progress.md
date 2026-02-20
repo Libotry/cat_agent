@@ -7,9 +7,9 @@
 
 ## 当前状态
 
-- **当前任务**: M6 Phase 3 编码（F35 Agent 状态可视化）
-- **最近完成**: M6 Phase 1.1 完成（策略扩展，254 UT + ST 15/15 不回归，四轮独立 CR 归零）
-- **待办优先级**: M6 Phase 3 编码 → P1.2 持久化+前端
+- **当前任务**: M6 Phase 3 完成（F35 Agent 状态可视化）
+- **最近完成**: M6 Phase 3（F35 Agent 状态可视化，239 UT + ST 13/13 全绿，二次独立 CR 归零）
+- **待办优先级**: M6 Phase 2（F32 上网工具）→ P1.2 持久化+前端
 - **阻塞问题**: 无
 
 ---
@@ -17,6 +17,41 @@
 ## 进展日志
 
 ### 2026-02-20
+
+#### M6 Phase 3 完成 — F35 Agent 状态可视化
+
+**改动内容**：
+
+后端：
+1. **tables.py**: AgentStatus 枚举扩展（IDLE/THINKING/EXECUTING/PLANNING），Agent.activity 字段
+2. **status_helper.py**（新建）: `set_agent_status()` — 状态变更 + WS 广播 `agent_status_change`
+3. **agent_runner.py**: generate_reply 状态生命周期（THINKING→EXECUTING→IDLE）
+4. **autonomy_service.py**: tick() 状态生命周期 + rest action 立即恢复 IDLE
+5. **schemas.py**: AgentOut 补 activity/satiety/mood/stamina 字段
+
+前端：
+6. **AgentStatusPanel.tsx**: 4 态颜色徽章 + 按状态排序
+7. **ActivityFeed.tsx**: 10 种 action 标签（含 tool_call/farm_work/mill_work）
+8. **DiscordLayout.tsx**: WS 处理 agent_status_change + agent_action 事件，actionLabels 同步
+9. **App.css**: mention-status 改用 CSS 变量（--status-online/busy/offline）
+10. **types.ts**: Agent.status 5 态 + 注释
+
+测试：
+11. **test_agent_status.py**（新建）: 6 个单元测试
+12. **e2e_m6_p3.py**（新建）: 4 ST 场景 13 断言
+
+**Code Review**（2 轮独立 CR，P0/P1/P2 全量归零）：
+- P1-1: CSS 硬编码颜色 → CSS 变量
+- P1-2: DiscordLayout actionLabels 补齐 assign_building/unassign_building/tool_call
+- P1-3: rest action 立即恢复 IDLE（不等最终兜底）
+- P2-1~4: types.ts 注释、timestamp T 分隔符、ActivityFeed 补 farm_work/mill_work、e2e events 初始化
+- P2-5~6（二次 CR）: AgentOut 补 satiety/mood/stamina、agent_runner/autonomy_service timestamp 统一
+
+**验证**: pytest 239/239 全绿 + ST 13/13 全绿
+
+**状态**: ✅ 完成
+
+---
 
 #### M6 Phase 3 SR 确认 — F35 Agent 状态可视化
 

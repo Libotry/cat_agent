@@ -4,7 +4,7 @@
 
 | 编号 | 一句话 | 标签 | 频率 | 文件 |
 |------|--------|------|------|------|
-| DEV-4 | 跳过流程门控直接编码 | 通用/流程 | 🔴×13 | flow-rules.md |
+| DEV-4 | 跳过流程门控直接编码 | 通用/流程 | 🔴×16 | flow-rules.md |
 | DEV-5 | 实施不遵循 TDD 文档 | 通用/流程 | 🟢 | flow-rules.md |
 | DEV-6 | 改代码不 grep 引用/不复用 pattern/不对照 TDD | 通用/流程 | 🟡×2 | flow-rules.md |
 | DEV-7 | pytest 冒充 ST / E2E 不跑 / 旧服务器没重启 | 通用/流程 | 🟡×2 | flow-rules.md |
@@ -16,6 +16,7 @@
 | DEV-38 | 编码前跳过 AR → 安全/异常/配置全面失守 | 通用/流程 | 🟢 | flow-rules.md |
 | DEV-40 | 功能设计脱离基础设施现实 | 通用/流程 | 🟢 | flow-rules.md |
 | DEV-41 | 用户要求拉角色但不读角色定义文件 | 通用/流程 | 🟢 | flow-rules.md |
+| DEV-42 | 对话开头环境指令未执行就动手改文件 | 通用/流程 | 🟢 | flow-rules.md |
 | DEV-3 | 联调问题用双终端来回排查 | 通用/工具 | 🟢 | tool-rules.md |
 | DEV-8 | Write 工具调用反复失败 | 通用/工具 | 🔴×5 | tool-rules.md |
 | DEV-12 | 外部 CLI 跳过环境探针+串行试错 | 通用/工具 | 🟡×2 | tool-rules.md |

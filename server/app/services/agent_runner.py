@@ -160,7 +160,7 @@ class AgentRunner:
                                 "agent_name": self.name,
                                 "action": "tool_call",
                                 "reason": f"调用 {tc.function.name}",
-                                "timestamp": datetime.now(timezone.utc).isoformat(sep=" ", timespec="seconds"),
+                                "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                             },
                         })
                     messages.append({

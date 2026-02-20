@@ -58,6 +58,9 @@ class AgentOut(BaseModel):
     status: str
     activity: str = ""
     credits: int
+    satiety: int = 100
+    mood: int = 80
+    stamina: int = 100
     speak_interval: int
     daily_free_quota: int
     quota_used_today: int

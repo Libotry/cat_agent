@@ -69,7 +69,10 @@ export function DiscordLayout() {
           rest: '正在休息',
           farm_work: '农田劳作',
           mill_work: '磨坊工作',
+          assign_building: '分配到建筑',
+          unassign_building: '离开建筑',
           eat: '进食',
+          tool_call: '调用工具',
         }
         const label = actionLabels[msg.data.action] || msg.data.action
         const sysMsg: Message = {

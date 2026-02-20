@@ -378,9 +378,9 @@
   flex-shrink: 0;
 }
 
-.mention-status.idle { background: #57f287; }
-.mention-status.busy { background: #faa61a; }
-.mention-status.offline { background: #747f8d; }
+.mention-status.idle { background: var(--status-online); }
+.mention-status.busy { background: var(--status-busy); }
+.mention-status.offline { background: var(--status-offline); }
 
 .mention-name {
   font-size: 0.9rem;

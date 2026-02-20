@@ -26,6 +26,6 @@ async def set_agent_status(
             "agent_name": agent.name,
             "status": status.value,
             "activity": activity,
-            "timestamp": datetime.now(timezone.utc).isoformat(sep=" ", timespec="seconds"),
+            "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         },
     })

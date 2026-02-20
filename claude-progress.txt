@@ -5,10 +5,10 @@
 
 ## 当前状态
 
-- **阶段**: M6 Phase 1.1 完成（策略系统半成品，已冻结，见遗留）
+- **阶段**: M6 Phase 3 完成（F35 Agent 状态可视化）
 - **技术栈**: FastAPI + WebSocket | React + Vite | SQLite + NumPy + 硅基流动 Embedding API
 - **仓库**: https://github.com/zuiho-kai/bot_civ
-- **测试**: UT 254/254 全绿 + M6 ST 15/15 不回归
+- **测试**: UT 239/239 全绿 + M6 P3 ST 13/13 全绿
 
 ## 原型需求差距评估（2026-02-20 设计终端产出）
 
@@ -29,15 +29,15 @@
 | 模型切换消耗信用点 | 0% | 锦上添花 |
 | 头像装饰/皮肤 | 0% | 纯装饰性 |
 
-### M6 完成度：~20%（F31 策略系统冻结，其余未开始）
+### M6 完成度：~50%（F31 冻结，F32+F35 完成，F33+F34 未开始）
 
 | M6 功能点 | 状态 | 说明 |
 |-----------|------|------|
 | F31 策略自动机 | ⏸ 冻结 | 半成品，见遗留。代码在 main + m6-p1.1-p1.2 分支 |
-| F32 上网工具 | 📋 SR 已写 | SR-M6-Phase2.md（设计终端产出） |
+| F32 上网工具 | ✅ 完成 | web_search + web_fetch，254 UT 全绿，四轮独立 CR 归零 |
 | F33 代码执行沙箱 | ❌ | Python 沙箱 |
 | F34 长任务编排 | ❌ | 多步计划持久化+自动推进 |
-| F35 Agent 状态可视化 | ❌ | 前端状态徽章+行动日志 |
+| F35 Agent 状态可视化 | ✅ 完成 | 4 态徽章+行动日志+WS 广播，ST 13/13 全绿 |
 
 ### 建议优先级（如果继续做 M6）
 
@@ -49,6 +49,10 @@
 ## 最近活动
 
 ### 2026-02-21
+- M6 Phase 3（F35 Agent 状态可视化）完成：ST 13/13 全绿 + pytest 239/239 全绿
+  - 后端：AgentStatus 4 态枚举 + status_helper 广播 + agent_runner/autonomy_service 状态生命周期
+  - 前端：AgentStatusPanel 徽章 + ActivityFeed 10 种 action + DiscordLayout WS 处理
+  - Code Review 2 轮（独立 agent），P0/P1/P2 全量归零
 - M6.1 建造系统完成：ST 9/9 全绿 + pytest 211/211 全绿
   - 后端：`city_service.py`（建造配方+construct）、`city.py`（construct/constructing 路由）、`autonomy_service.py`（建筑快照动态工期）、`tool_registry.py`（construct_building 工具）
   - 前端：`CityPanel.tsx`（建造 UI）、`types.ts`/`api.ts`（类型+API）
@@ -97,6 +101,8 @@
 - M5.1 ✅: 资源转赠 + Tool Use（ST 8/8 全绿）
 - M5.2 ✅: 交易市场（挂单/接单/撤单，ST 16/16 全绿）
 - M6.1 ✅: 建造系统（建造/工期/建造中列表，ST 9/9 全绿）
+- M6-P2 ✅: F32 上网工具（web_search + web_fetch，254 UT 全绿，四轮独立 CR 归零）
+- M6-P3 ✅: F35 Agent 状态可视化（4 态徽章+行动日志+WS 广播，ST 13/13 全绿）
 - M6 待定: Agent CLI 运行时（持久进程 + 上网 + 任意工具）
 
 ## 遗留

@@ -4,7 +4,7 @@ export interface Agent {
   persona: string
   model: string
   avatar: string
-  status: 'idle' | 'thinking' | 'executing' | 'planning' | 'busy' | 'offline'
+  status: 'idle' | 'thinking' | 'executing' | 'planning' | 'busy' | 'offline' // busy/offline: 前端 UI 兼容状态，后端不产生
   credits: number
   speak_interval: number
   daily_free_quota: number

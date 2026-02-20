@@ -22,7 +22,8 @@ from .shop_service import shop_service
 from .economy_service import economy_service
 from .agent_runner import runner_manager
 from .city_service import assign_worker, remove_worker, eat_food, get_agent_resources, construct_building, BUILDING_RECIPES
-from .strategy_engine import Strategy, StrategyType, parse_strategies, update_strategies, get_strategies
+# 策略系统 dormant（DEV-40: 调度架构不匹配，冻结等待事件驱动重做）
+# from .strategy_engine import Strategy, StrategyType, parse_strategies, update_strategies, get_strategies
 from .status_helper import set_agent_status
 
 logger = logging.getLogger(__name__)
@@ -33,11 +34,8 @@ _round_log_lock = asyncio.Lock()
 
 AUTONOMY_MODEL = "wakeup-model"  # 复用免费小模型做决策
 
-SYSTEM_PROMPT = """你是虚拟城市模拟器。根据世界状态为每个居民决定两件事：
-A) 本轮立即执行的行为（actions）
-B) 持续生效的策略（strategies）— 自动机会在后续自动执行，直到条件满足
+SYSTEM_PROMPT = """你是虚拟城市模拟器。根据世界状态为每个居民决定本轮立即执行的行为。
 
-== 立即行为（actions）==
 行为：checkin（打卡）、purchase（购买）、chat（聊天）、rest（休息）、assign_building（应聘建筑）、unassign_building（离职）、eat（吃饭）、transfer_resource（转赠资源）、create_market_order（挂单交易）、accept_market_order（接单交易）、cancel_market_order（撤单）、construct_building（建造建筑）
 
 规则：
@@ -51,37 +49,10 @@ B) 持续生效的策略（strategies）— 自动机会在后续自动执行，
 8. cancel_market_order：挂单长时间无人接可撤单
 9. construct_building：有足够 wood/stone 可建造（farm 需 wood=10 stone=5 工期3天；mill 需 wood=15 stone=10 工期5天）
 
-== 持续策略（strategies）==
-策略类型：
-- keep_working：持续在某建筑工作，直到某资源达到目标量
-- opportunistic_buy：市场出现低价资源时自动接单，直到库存达标
-
-【强制规则】以下条件满足时，必须输出对应策略（strategy），单次 checkin/accept 无法解决多轮需求：
-
-★ keep_working 触发条件（全部满足时必须设置）：
-  1. 居民状态含"在岗：xxx" （说明已有工作岗位）
-  2. 该居民对应的生产资源数量 < 20
-  → 必须设 keep_working 策略（同时可输出 checkin action）
-  → 示例：Alice 在农场[在岗]，wheat=0 → {"agent_id":1, "strategy":"keep_working", "building_id":3, "stop_when_resource":"wheat", "stop_when_amount":50}
-
-★ opportunistic_buy 触发条件（全部满足时必须设置）：
-  步骤1：扫描交易市场，找出所有 sell_type（如 flour、wheat）
-  步骤2：对每个居民，检查其对应资源库存（资源=[xxx=数量]）
-  步骤3：如果 居民该资源数量 < 10 且 居民 credits > 0 → 必须设置 opportunistic_buy
-  → 无论挂单价格高低，库存极低（< 10）的居民必须设策略，让自动机持续监控低价
-  → 示例：Bob 资源=[flour=0]，余额=100，市场有"卖flour"挂单 → 必须输出：
-    {"agent_id":2, "strategy":"opportunistic_buy", "resource":"flour", "price_below":1.5, "stop_when_amount":20}
-
-策略与行为可以共存：同一居民可同时有 checkin action + keep_working strategy
-每个居民最多 2 条策略，策略持续生效直到下一轮决策覆盖
-
 直接输出纯 JSON，不要解释，不要 markdown，不要思考过程。格式：
-{"actions": [<action>...], "strategies": [<strategy>...]}
+[<action>...]
 
 action 格式：{"agent_id": 1, "action": "eat", "params": {}, "reason": "饿了"}
-strategy 格式示例：
-{"agent_id": 1, "strategy": "keep_working", "building_id": 3, "stop_when_resource": "wheat", "stop_when_amount": 50}
-{"agent_id": 2, "strategy": "opportunistic_buy", "resource": "flour", "price_below": 1.5, "stop_when_amount": 20}
 
 params: checkin={}, purchase={"item_id": <int>}, chat={}, rest={}, assign_building={"building_id": <int>}, unassign_building={}, eat={}, transfer_resource={"to_agent_id": <int>, "resource_type": "<str>", "quantity": <number>}, create_market_order={"sell_type": "<str>", "sell_amount": <number>, "buy_type": "<str>", "buy_amount": <number>}, accept_market_order={"order_id": <int>, "buy_ratio": <number>}, cancel_market_order={"order_id": <int>}, construct_building={"building_type": "<farm|mill>", "name": "<str>"}"""
 
@@ -251,19 +222,19 @@ async def build_world_snapshot(db: AsyncSession) -> str:
     return snapshot
 
 
-async def decide(snapshot: str) -> tuple[list[dict], list[Strategy]]:
-    """调用 LLM 做出行为决策，返回 (actions, strategies)。
+async def decide(snapshot: str) -> list[dict]:
+    """调用 LLM 做出行为决策，返回 actions 列表。
 
-    新格式：{"actions": [...], "strategies": [...]}
-    旧格式兜底：[{action...}] → strategies 为空
+    策略系统 dormant（DEV-40），只返回立即行为。
+    兑容旧格式 {"actions": [...]} 和新格式 [...]。
     """
     if not snapshot:
-        return [], []
+        return []
 
     resolved = resolve_model(AUTONOMY_MODEL)
     if not resolved:
         logger.warning("Autonomy model not configured")
-        return [], []
+        return []
 
     base_url, api_key, model_id = resolved
 
@@ -320,30 +291,28 @@ async def decide(snapshot: str) -> tuple[list[dict], list[Strategy]]:
 
         parsed = json.loads(raw)
 
-        # 新格式：{"actions": [...], "strategies": [...]}
+        # 兼容旧格式：{"actions": [...], "strategies": [...]}（忽略 strategies）
         if isinstance(parsed, dict) and "actions" in parsed:
             actions_raw = parsed.get("actions", [])
-            strategies_raw = parsed.get("strategies", [])
             actions = _validate_actions(actions_raw)
-            strategies = parse_strategies(strategies_raw) if strategies_raw else []
-            logger.info("Autonomy decide: %d actions, %d strategies (new format)", len(actions), len(strategies))
-            return actions, strategies
+            logger.info("Autonomy decide: %d actions (dict format)", len(actions))
+            return actions
 
-        # 旧格式兜底：[{action...}]
+        # 新格式：[{action...}]
         if isinstance(parsed, list):
             actions = _validate_actions(parsed)
-            logger.info("Autonomy decide: %d actions, 0 strategies (legacy format)", len(actions))
-            return actions, []
+            logger.info("Autonomy decide: %d actions (list format)", len(actions))
+            return actions
 
         logger.warning("Autonomy decide: unexpected format %s", type(parsed))
-        return [], []
+        return []
 
     except json.JSONDecodeError as e:
         logger.error("Autonomy decide: JSON parse failed: %s, raw=%s", e, raw[:200])
-        return [], []
+        return []
     except Exception as e:
         logger.error("Autonomy decide: LLM call failed: %s", e)
-        return [], []
+        return []
 
 
 def _validate_actions(raw_list: list) -> list[dict]:
@@ -393,6 +362,9 @@ async def execute_decisions(decisions: list[dict], db: AsyncSession, snapshot: s
             if action == "rest":
                 stats["skipped"] += 1
                 round_log.append({"agent_id": aid, "agent_name": agent_name, "action": "rest", "reason": reason})
+                # F35: rest 时立即恢复 IDLE（不等最终兜底）
+                if agent_obj:
+                    await set_agent_status(agent_obj, AgentStatus.IDLE, "", db)
                 continue
 
             if action == "checkin":
@@ -691,7 +663,7 @@ async def _broadcast_action(agent_name: str, agent_id: int, action: str, reason:
             "agent_name": agent_name,
             "action": action,
             "reason": reason,
-            "timestamp": datetime.now(timezone.utc).isoformat(sep=" ", timespec="seconds"),
+            "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         }
     })
 
@@ -817,7 +789,8 @@ async def execute_strategies(db: AsyncSession) -> dict:
 async def tick():
     """一次完整的自主行为循环。
 
-    流程：构建快照 → LLM 决策(actions + strategies) → 执行 actions → 存储策略 → 执行策略
+    流程：构建快照 → LLM 决策(actions) → 执行 actions
+    策略自动机 dormant（DEV-40: 调度架构不匹配）
     """
     logger.info("Autonomy tick: starting")
     try:
@@ -835,17 +808,7 @@ async def tick():
             for agent in all_agents:
                 await set_agent_status(agent, AgentStatus.THINKING, "正在分析环境…", db)
 
-        actions, strategies = await decide(snapshot)
-
-        # 存储策略（全量覆盖）
-        if strategies:
-            from collections import defaultdict
-            by_agent: dict[int, list[Strategy]] = defaultdict(list)
-            for s in strategies:
-                by_agent[s.agent_id].append(s)
-            for aid, ss in by_agent.items():
-                update_strategies(aid, ss)
-            logger.info("Autonomy tick: stored strategies for %d agents", len(by_agent))
+        actions = await decide(snapshot)
 
         # 执行立即行为
         if actions:
@@ -856,11 +819,7 @@ async def tick():
         else:
             logger.info("Autonomy tick: no actions")
 
-        # 执行策略自动机
-        async with async_session() as db:
-            strategy_stats = await execute_strategies(db)
-        if strategy_stats["executed"] > 0:
-            logger.info("Autonomy tick: strategies executed — %s", strategy_stats)
+        # 策略自动机 dormant（DEV-40）
 
         # F35: 所有 agent → IDLE
         async with async_session() as db:
