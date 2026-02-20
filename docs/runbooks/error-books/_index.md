@@ -8,7 +8,7 @@
 | DEV-5 | 实施不遵循 TDD 文档 | 通用/流程 | 🟢 | flow-rules.md |
 | DEV-6 | 改代码不 grep 引用/不复用 pattern/不对照 TDD | 通用/流程 | 🟡×3 | flow-rules.md |
 | DEV-7 | pytest 冒充 ST / E2E 不跑 / 旧服务器没重启 | 通用/流程 | 🟡×2 | flow-rules.md |
-| DEV-24 | 更新文档只改局部不扫全文 | 通用/流程 | 🟢 | flow-rules.md |
+| DEV-24 | 更新文档只改局部不扫全文 | 通用/流程 | 🟡×2 | flow-rules.md |
 | DEV-29 | P0/P1 修复列表漏项+执行碎片化 | 通用/流程 | 🟢 | flow-rules.md |
 | DEV-32 | 门控表缺序号→TDD 被误当起始动作 | 通用/流程 | 🟢 | flow-rules.md |
 | DEV-33 | pytest 冒充 ST + P0/P1 归零跳过归因 | 通用/流程 | 🟡×5 | flow-rules.md |
