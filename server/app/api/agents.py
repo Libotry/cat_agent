@@ -89,3 +89,45 @@ async def regenerate_token(agent_id: int, db: AsyncSession = Depends(get_db)):
     await db.commit()
     await db.refresh(agent)
     return agent
+
+
+@router.get("/{agent_id}/strategies")
+async def get_agent_strategies(agent_id: int, db: AsyncSession = Depends(get_db)):
+    """获取 Agent 当前活跃策略（策略自动机观测接口）。"""
+    agent = await db.get(Agent, agent_id)
+    if not agent:
+        raise HTTPException(404, "Agent not found")
+    from ..services.strategy_engine import get_strategies
+    strategies = get_strategies(agent_id)
+    return [s.model_dump() for s in strategies]
+
+
+@router.post("/{agent_id}/strategies")
+async def set_agent_strategies(agent_id: int, strategies: list[dict], db: AsyncSession = Depends(get_db)):
+    """设置 Agent 策略（全量替换）。"""
+    agent = await db.get(Agent, agent_id)
+    if not agent:
+        raise HTTPException(404, "Agent not found")
+    from ..services.strategy_engine import Strategy, update_strategies
+    parsed = [Strategy(**s) for s in strategies]
+    update_strategies(agent_id, parsed)
+    return {"ok": True, "count": len(parsed)}
+
+
+@router.delete("/{agent_id}/strategies")
+async def clear_agent_strategies(agent_id: int, db: AsyncSession = Depends(get_db)):
+    """清空 Agent 所有策略。"""
+    agent = await db.get(Agent, agent_id)
+    if not agent:
+        raise HTTPException(404, "Agent not found")
+    from ..services.strategy_engine import clear_strategies
+    clear_strategies(agent_id)
+    return {"ok": True}
+
+
+@router.get("/strategies/all")
+async def get_all_agent_strategies():
+    """获取所有 Agent 的策略（调试用）。"""
+    from ..services.strategy_engine import get_all_strategies
+    all_s = get_all_strategies()
+    return {str(aid): [s.model_dump() for s in ss] for aid, ss in all_s.items()}

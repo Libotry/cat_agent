@@ -7,9 +7,9 @@
 
 ## 当前状态
 
-- **当前任务**: M5.2 完成 — 交易市场 ST 16/16 全绿 + pytest 211/211 全绿
-- **最近完成**: M5.2-6 ST 端到端验证通过
-- **待办优先级**: M6 Agent CLI 运行时
+- **当前任务**: M6 Phase 1 T4 完成 — LLM 策略触发率 100%（强制规则 prompt 优化）
+- **最近完成**: T4 强制触发测试 + 10 轮质量验证双双 100%
+- **待办优先级**: M6 Phase 2（price_target + stockpile 策略类型）
 - **阻塞问题**: 无
 
 ---
@@ -17,6 +17,41 @@
 ## 进展日志
 
 ### 2026-02-20
+
+#### M6 Phase 1 T4 完成 — LLM 策略触发率 100%
+
+**背景**：T4 验证关卡（LLM 输出质量 Go/No-Go），原 10 轮测试策略率 70%。
+
+**根因**：SYSTEM_PROMPT 策略触发规则为建议性文字（"资源明显不足"、"有购买意愿"），模型倾向于选安全的即时行为（checkin）。
+
+**修复**（`autonomy_service.py` SYSTEM_PROMPT）：
+- 将策略触发改为三步骤**强制规则**（"必须输出"语言）
+- `keep_working`：居民在岗 + 对应资源 < 20 → 必须设策略
+- `opportunistic_buy`：扫描市场卖出品种 → 居民对应资源 < 10 且 credits > 0 → 必须设策略
+
+**新增文件**：
+- `validate_m6_forced.py`：极端场景单轮强制触发测试（wheat=0、flour=0、超低价单）
+
+**验证**：
+- 强制触发测试：✅ 100%（两种策略都触发）
+- 10 轮 LLM 质量测试：✅ 100%（10/10 轮有策略，策略总数 19）
+
+---
+
+#### M6 Phase 1 完成 — 策略自动机端到端验证
+
+**改动内容**：
+
+1. **strategy_engine.py**：`clear_strategies` 支持按 agent_id 清空
+2. **autonomy_service.py**：`execute_strategies` 预加载资源时补充 `Agent.credits`（修复 opportunistic_buy 支付检查永远失败的 bug）
+3. **agents.py**：新增 `POST /api/agents/{id}/strategies`（设置策略）、`DELETE /api/agents/{id}/strategies`（清空策略）
+4. **dev_trigger.py**：新增 `POST /api/dev/execute-strategies`（手动触发策略执行，ST 用）
+5. **tests/test_m6_e2e.py**（新建）：4 个 pytest 集成测试（keep_working/opportunistic_buy/跳过高价单/观测API）
+6. **e2e_m6.py**（新建）：真实服务器 ST 脚本，4 场景 15 个断言
+
+**验证**：pytest 231/231 全绿 + ST 15/15 全绿
+
+---
 
 #### M5.2 交易市场 — Phase 1 + 2 + 2.5 完成
 

@@ -22,6 +22,7 @@ from .shop_service import shop_service
 from .economy_service import economy_service
 from .agent_runner import runner_manager
 from .city_service import assign_worker, remove_worker, eat_food, get_agent_resources, construct_building, BUILDING_RECIPES
+from .strategy_engine import Strategy, StrategyType, parse_strategies, update_strategies, get_strategies
 
 logger = logging.getLogger(__name__)
 
@@ -31,22 +32,55 @@ _round_log_lock = asyncio.Lock()
 
 AUTONOMY_MODEL = "wakeup-model"  # 复用免费小模型做决策
 
-SYSTEM_PROMPT = """你是虚拟城市模拟器。根据世界状态为每个居民决定行为。
+SYSTEM_PROMPT = """你是虚拟城市模拟器。根据世界状态为每个居民决定两件事：
+A) 本轮立即执行的行为（actions）
+B) 持续生效的策略（strategies）— 自动机会在后续自动执行，直到条件满足
+
+== 立即行为（actions）==
+行为：checkin（打卡）、purchase（购买）、chat（聊天）、rest（休息）、assign_building（应聘建筑）、unassign_building（离职）、eat（吃饭）、transfer_resource（转赠资源）、create_market_order（挂单交易）、accept_market_order（接单交易）、cancel_market_order（撤单）、construct_building（建造建筑）
 
 规则：
-1. 行为：checkin（打卡）、purchase（购买）、chat（聊天）、rest（休息）、assign_building（应聘建筑）、unassign_building（离职）、eat（吃饭）、transfer_resource（转赠资源）、create_market_order（挂单交易）、accept_market_order（接单交易）、cancel_market_order（撤单）、construct_building（建造建筑）
-2. 已打卡不能重复；余额不足不能购买；行为符合性格
-3. rest 是合理选择，不必所有人都行动
-4. 饱腹度低时优先 eat；体力低时优先 rest；无工作时考虑 assign_building
-5. assign_building 需要 building_id；unassign_building 无需参数（自动查找当前建筑）
-6. transfer_resource：当自己资源充裕且有居民资源匮乏时可考虑转赠
-7. create_market_order：资源富余时可挂单交易，以物易物
-8. accept_market_order：看到合适的挂单可以接单，支持部分购买（buy_ratio 0~1）
-9. cancel_market_order：挂单长时间无人接可撤单
-10. construct_building：当有足够 wood/stone 且城市需要更多建筑时可建造（farm 需 wood=10 stone=5 工期3天；mill 需 wood=15 stone=10 工期5天）
+1. 已打卡不能重复；余额不足不能购买；行为符合性格
+2. rest 是合理选择，不必所有人都行动
+3. 饱腹度低时优先 eat；体力低时优先 rest；无工作时考虑 assign_building
+4. assign_building 需要 building_id；unassign_building 无需参数
+5. transfer_resource：资源充裕且有居民匮乏时可转赠
+6. create_market_order：资源富余时挂单交易
+7. accept_market_order：合适挂单可接单（buy_ratio 0~1）
+8. cancel_market_order：挂单长时间无人接可撤单
+9. construct_building：有足够 wood/stone 可建造（farm 需 wood=10 stone=5 工期3天；mill 需 wood=15 stone=10 工期5天）
 
-直接输出纯 JSON 数组，不要解释，不要 markdown，不要思考过程。示例：
-[{"agent_id": 1, "action": "transfer_resource", "params": {"to_agent_id": 2, "resource_type": "flour", "quantity": 3}, "reason": "Bob 没有面粉，分一些给他"}]
+== 持续策略（strategies）==
+策略类型：
+- keep_working：持续在某建筑工作，直到某资源达到目标量
+- opportunistic_buy：市场出现低价资源时自动接单，直到库存达标
+
+【强制规则】以下条件满足时，必须输出对应策略（strategy），单次 checkin/accept 无法解决多轮需求：
+
+★ keep_working 触发条件（全部满足时必须设置）：
+  1. 居民状态含"在岗：xxx" （说明已有工作岗位）
+  2. 该居民对应的生产资源数量 < 20
+  → 必须设 keep_working 策略（同时可输出 checkin action）
+  → 示例：Alice 在农场[在岗]，wheat=0 → {"agent_id":1, "strategy":"keep_working", "building_id":3, "stop_when_resource":"wheat", "stop_when_amount":50}
+
+★ opportunistic_buy 触发条件（全部满足时必须设置）：
+  步骤1：扫描交易市场，找出所有 sell_type（如 flour、wheat）
+  步骤2：对每个居民，检查其对应资源库存（资源=[xxx=数量]）
+  步骤3：如果 居民该资源数量 < 10 且 居民 credits > 0 → 必须设置 opportunistic_buy
+  → 无论挂单价格高低，库存极低（< 10）的居民必须设策略，让自动机持续监控低价
+  → 示例：Bob 资源=[flour=0]，余额=100，市场有"卖flour"挂单 → 必须输出：
+    {"agent_id":2, "strategy":"opportunistic_buy", "resource":"flour", "price_below":1.5, "stop_when_amount":20}
+
+策略与行为可以共存：同一居民可同时有 checkin action + keep_working strategy
+每个居民最多 2 条策略，策略持续生效直到下一轮决策覆盖
+
+直接输出纯 JSON，不要解释，不要 markdown，不要思考过程。格式：
+{"actions": [<action>...], "strategies": [<strategy>...]}
+
+action 格式：{"agent_id": 1, "action": "eat", "params": {}, "reason": "饿了"}
+strategy 格式示例：
+{"agent_id": 1, "strategy": "keep_working", "building_id": 3, "stop_when_resource": "wheat", "stop_when_amount": 50}
+{"agent_id": 2, "strategy": "opportunistic_buy", "resource": "flour", "price_below": 1.5, "stop_when_amount": 20}
 
 params: checkin={}, purchase={"item_id": <int>}, chat={}, rest={}, assign_building={"building_id": <int>}, unassign_building={}, eat={}, transfer_resource={"to_agent_id": <int>, "resource_type": "<str>", "quantity": <number>}, create_market_order={"sell_type": "<str>", "sell_amount": <number>, "buy_type": "<str>", "buy_amount": <number>}, accept_market_order={"order_id": <int>, "buy_ratio": <number>}, cancel_market_order={"order_id": <int>}, construct_building={"building_type": "<farm|mill>", "name": "<str>"}"""
 
@@ -216,15 +250,19 @@ async def build_world_snapshot(db: AsyncSession) -> str:
     return snapshot
 
 
-async def decide(snapshot: str) -> list[dict]:
-    """调用 LLM 做出行为决策，返回决策列表。"""
+async def decide(snapshot: str) -> tuple[list[dict], list[Strategy]]:
+    """调用 LLM 做出行为决策，返回 (actions, strategies)。
+
+    新格式：{"actions": [...], "strategies": [...]}
+    旧格式兜底：[{action...}] → strategies 为空
+    """
     if not snapshot:
-        return []
+        return [], []
 
     resolved = resolve_model(AUTONOMY_MODEL)
     if not resolved:
         logger.warning("Autonomy model not configured")
-        return []
+        return [], []
 
     base_url, api_key, model_id = resolved
 
@@ -244,13 +282,28 @@ async def decide(snapshot: str) -> list[dict]:
             msg_data = response.choices[0].message
             reasoning = getattr(msg_data, 'reasoning', None) or getattr(msg_data, 'reasoning_content', None)
             if reasoning:
-                # 用正则提取 reasoning 中最后一个 JSON 数组
+                # 用正则提取 reasoning 中所有可能的 JSON 对象或数组
                 import re
-                json_matches = re.findall(r'\[[\s\S]*?\]', reasoning)
-                for candidate in reversed(json_matches):
+                # 贪婪匹配，从 { 或 [ 开始到对应的 } 或 ] 结束
+                json_matches = []
+                for match in re.finditer(r'[\[{]', reasoning):
+                    start = match.start()
+                    # 尝试从这个位置解析 JSON
+                    for end in range(start + 1, len(reasoning) + 1):
+                        candidate = reasoning[start:end]
+                        try:
+                            parsed = json.loads(candidate)
+                            if isinstance(parsed, (list, dict)):
+                                json_matches.append(candidate)
+                                break
+                        except json.JSONDecodeError:
+                            continue
+
+                # 从最长的开始尝试（更可能是完整 JSON）
+                for candidate in sorted(json_matches, key=len, reverse=True):
                     try:
                         parsed = json.loads(candidate)
-                        if isinstance(parsed, list) and len(parsed) > 0:
+                        if isinstance(parsed, (list, dict)):
                             raw = candidate
                             logger.info("Autonomy decide: extracted JSON from reasoning field")
                             break
@@ -264,31 +317,46 @@ async def decide(snapshot: str) -> list[dict]:
             lines = [l for l in lines if not l.strip().startswith("```")]
             raw = "\n".join(lines)
 
-        decisions = json.loads(raw)
-        if not isinstance(decisions, list):
-            logger.warning("Autonomy decide: expected list, got %s", type(decisions))
-            return []
+        parsed = json.loads(raw)
 
-        # 基本校验
-        valid = []
-        for d in decisions:
-            if not isinstance(d, dict):
-                continue
-            if "agent_id" not in d or "action" not in d:
-                continue
-            if d["action"] not in ("checkin", "purchase", "chat", "rest", "assign_building", "unassign_building", "eat", "transfer_resource", "create_market_order", "accept_market_order", "cancel_market_order", "construct_building"):
-                d["action"] = "rest"
-            valid.append(d)
+        # 新格式：{"actions": [...], "strategies": [...]}
+        if isinstance(parsed, dict) and "actions" in parsed:
+            actions_raw = parsed.get("actions", [])
+            strategies_raw = parsed.get("strategies", [])
+            actions = _validate_actions(actions_raw)
+            strategies = parse_strategies(strategies_raw) if strategies_raw else []
+            logger.info("Autonomy decide: %d actions, %d strategies (new format)", len(actions), len(strategies))
+            return actions, strategies
 
-        logger.info("Autonomy decide: %d valid decisions", len(valid))
-        return valid
+        # 旧格式兜底：[{action...}]
+        if isinstance(parsed, list):
+            actions = _validate_actions(parsed)
+            logger.info("Autonomy decide: %d actions, 0 strategies (legacy format)", len(actions))
+            return actions, []
+
+        logger.warning("Autonomy decide: unexpected format %s", type(parsed))
+        return [], []
 
     except json.JSONDecodeError as e:
         logger.error("Autonomy decide: JSON parse failed: %s, raw=%s", e, raw[:200])
-        return []
+        return [], []
     except Exception as e:
         logger.error("Autonomy decide: LLM call failed: %s", e)
-        return []
+        return [], []
+
+
+def _validate_actions(raw_list: list) -> list[dict]:
+    """校验 action 列表，过滤不合法条目。"""
+    valid = []
+    for d in raw_list:
+        if not isinstance(d, dict):
+            continue
+        if "agent_id" not in d or "action" not in d:
+            continue
+        if d["action"] not in ("checkin", "purchase", "chat", "rest", "assign_building", "unassign_building", "eat", "transfer_resource", "create_market_order", "accept_market_order", "cancel_market_order", "construct_building"):
+            d["action"] = "rest"
+        valid.append(d)
+    return valid
 
 
 async def execute_decisions(decisions: list[dict], db: AsyncSession, snapshot: str = "") -> dict:
@@ -622,8 +690,129 @@ async def _broadcast_action(agent_name: str, agent_id: int, action: str, reason:
     })
 
 
+async def execute_strategies(db: AsyncSession) -> dict:
+    """策略自动机：遍历所有 Agent 的活跃策略，匹配当前世界状态并执行。
+
+    返回 {"executed": N, "skipped": N, "completed": N}
+    """
+    from .market_service import list_orders, accept_order
+    from .strategy_engine import get_all_strategies, StrategyType
+
+    stats = {"executed": 0, "skipped": 0, "completed": 0}
+    all_strategies = get_all_strategies()
+    if not all_strategies:
+        return stats
+
+    # 预加载 agent 名称和 credits
+    result = await db.execute(select(Agent.id, Agent.name, Agent.credits).where(Agent.id != 0))
+    agent_names = {}
+    agent_resources: dict[int, dict[str, float]] = {}
+    for aid, name, agent_credits in result.all():
+        agent_names[aid] = name
+        agent_resources[aid] = {"credits": float(agent_credits)}
+
+    # 预加载 agent 资源（wheat, flour 等）
+    res_result = await db.execute(select(AgentResource))
+    for ar in res_result.scalars().all():
+        if ar.agent_id not in agent_resources:
+            agent_resources[ar.agent_id] = {"credits": 0.0}
+        agent_resources[ar.agent_id][ar.resource_type] = ar.quantity
+
+    # 预加载工作状态
+    worker_result = await db.execute(
+        select(BuildingWorker.agent_id, BuildingWorker.building_id)
+    )
+    agent_building: dict[int, int] = {aid: bid for aid, bid in worker_result.all()}
+
+    # 预加载市场挂单（opportunistic_buy 用）
+    market_orders = await list_orders(db=db)
+    open_orders = [o for o in market_orders if o["status"] in ("open", "partial")]
+
+    for aid, strategies in all_strategies.items():
+        if aid not in agent_names:
+            continue
+        agent_name = agent_names[aid]
+        my_resources = agent_resources.get(aid, {})
+
+        for s in strategies:
+            try:
+                if s.strategy == StrategyType.KEEP_WORKING:
+                    # 终止条件：资源达标
+                    if s.stop_when_resource and s.stop_when_amount is not None:
+                        current = my_resources.get(s.stop_when_resource, 0)
+                        if current >= s.stop_when_amount:
+                            logger.info("Strategy completed: agent %s keep_working, %s reached %.1f",
+                                        agent_name, s.stop_when_resource, current)
+                            stats["completed"] += 1
+                            continue
+
+                    # 执行：如果已在目标建筑，执行 checkin
+                    if s.building_id and agent_building.get(aid) == s.building_id:
+                        jobs = await work_service.get_jobs(db)
+                        available = [j for j in jobs if j["max_workers"] == 0 or j["today_workers"] < j["max_workers"]]
+                        if available:
+                            res = await work_service.check_in(aid, random.choice(available)["id"], db)
+                            if res["ok"]:
+                                stats["executed"] += 1
+                                await _broadcast_action(agent_name, aid, "checkin", f"策略自动执行: 持续工作")
+                            else:
+                                stats["skipped"] += 1
+                        else:
+                            stats["skipped"] += 1
+                    else:
+                        stats["skipped"] += 1
+
+                elif s.strategy == StrategyType.OPPORTUNISTIC_BUY:
+                    # 终止条件：库存达标
+                    if s.stop_when_amount is not None and s.resource:
+                        current = my_resources.get(s.resource, 0)
+                        if current >= s.stop_when_amount:
+                            logger.info("Strategy completed: agent %s opportunistic_buy, %s reached %.1f",
+                                        agent_name, s.resource, current)
+                            stats["completed"] += 1
+                            continue
+
+                    # 执行：扫描市场找低价单
+                    bought = False
+                    if s.resource and s.price_below is not None:
+                        for order in open_orders:
+                            if (order["sell_type"] == s.resource
+                                    and order["remain_sell_amount"] > 0
+                                    and order["remain_buy_amount"] > 0
+                                    and order["seller_id"] != aid):
+                                unit_price = order["remain_buy_amount"] / order["remain_sell_amount"]
+                                if unit_price <= s.price_below:
+                                    pay_resource = order["buy_type"]
+                                    pay_amount = order["remain_buy_amount"]
+                                    my_pay = my_resources.get(pay_resource, 0)
+                                    if my_pay >= pay_amount:
+                                        res = await accept_order(aid, order["id"], 1.0, db=db)
+                                        if res["ok"]:
+                                            stats["executed"] += 1
+                                            await _broadcast_action(
+                                                agent_name, aid, "accept_market_order",
+                                                f"策略自动执行: 低价买入 {s.resource}"
+                                            )
+                                            my_resources[s.resource] = my_resources.get(s.resource, 0) + order["remain_sell_amount"]
+                                            my_resources[pay_resource] = my_pay - pay_amount
+                                            bought = True
+                                            break
+                    if not bought:
+                        stats["skipped"] += 1
+
+            except Exception as e:
+                logger.error("Strategy execution failed: agent %s, strategy %s: %s", agent_name, s.strategy, e)
+                stats["skipped"] += 1
+
+    await db.commit()
+    return stats
+
+
 async def tick():
-    """一次完整的自主行为循环。"""
+    """一次完整的自主行为循环。
+
+    流程：构建快照 → LLM 决策(actions + strategies) → 执行 actions → 存储策略 → 执行策略
+    """
     logger.info("Autonomy tick: starting")
     try:
         async with async_session() as db:
@@ -633,16 +822,32 @@ async def tick():
             logger.info("Autonomy tick: no agents, skipping")
             return
 
-        decisions = await decide(snapshot)
-        if not decisions:
-            logger.info("Autonomy tick: no decisions, skipping")
-            return
+        actions, strategies = await decide(snapshot)
 
-        logger.info("Autonomy tick: executing %d decisions", len(decisions))
+        # 存储策略（全量覆盖）
+        if strategies:
+            from collections import defaultdict
+            by_agent: dict[int, list[Strategy]] = defaultdict(list)
+            for s in strategies:
+                by_agent[s.agent_id].append(s)
+            for aid, ss in by_agent.items():
+                update_strategies(aid, ss)
+            logger.info("Autonomy tick: stored strategies for %d agents", len(by_agent))
+
+        # 执行立即行为
+        if actions:
+            logger.info("Autonomy tick: executing %d actions", len(actions))
+            async with async_session() as db:
+                stats = await execute_decisions(actions, db, snapshot)
+            logger.info("Autonomy tick: actions done — %s", stats)
+        else:
+            logger.info("Autonomy tick: no actions")
+
+        # 执行策略自动机
         async with async_session() as db:
-            stats = await execute_decisions(decisions, db, snapshot)
-
-        logger.info("Autonomy tick: done — %s", stats)
+            strategy_stats = await execute_strategies(db)
+        if strategy_stats["executed"] > 0:
+            logger.info("Autonomy tick: strategies executed — %s", strategy_stats)
 
     except Exception as e:
         logger.error("Autonomy tick failed: %s", e, exc_info=True)

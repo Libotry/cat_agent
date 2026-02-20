@@ -63,7 +63,9 @@
 触发原因：[CR 发现 P0 / ST 失败 / 用户指出 / ...]
 归因路径：[A：checklist 有但跳过 / B：有但没拦住 / C：新场景 / D：架构问题]
 已 Read 目标错题本记录规则：[是，行数上限=N / 否 → 必须先 Read]
-落盘目标：[error-book-dev-backend.md / common.md / ...]
+落盘目标：[flow-rules.md / tool-rules.md / backend-agent.md / backend-db.md / backend-api-env.md / frontend-ui.md / frontend-react.md / interface-rules.md]
+草稿预览（≤行数上限，超则必须精简后重填）：
+[在此写完整条目草稿，写完数行数确认不超限]
 checklist 修改：[需要改第 X 条 / 新增 / 不需要]
 ---
 ```
@@ -86,7 +88,7 @@ ST 状态：[未开始/已通过]
 
 **通用规则**：
 - **方案/TDD 不等于已评审**：先提取待确认设计决策，逐个确认后才能编码
-- **动手前 Read 错题本**：通用 `error-book-dev-common.md` + 按任务类型读 backend/frontend，在代码修改 checklist 之前完成
+- **动手前 Read 错题本（按需加载）**：错题本已按模块拆分为独立文件（`docs/runbooks/error-books/`）。加载策略：① 每次必读 `_index.md`（速查索引）+ `flow-rules.md`（通用流程，~60 行）② 根据改动模块只读对应文件：改 Agent → `backend-agent.md`；改 DB → `backend-db.md`；改 API/环境 → `backend-api-env.md`；改 React → `frontend-react.md`；改 UI → `frontend-ui.md`；改前后端对接 → `interface-rules.md`；用工具踩坑 → `tool-rules.md` ③ 不相关的文件不读。在代码修改 checklist 之前完成
 - **前端 API 层 checklist**（DEV-14）：改 `types.ts` 时必须打开后端 service 返回值逐字段比对（字段名/类型/可选性）；大量 UI 改动分步写分步检查，不一口气写完
 - **Write 强制分步**（DEV-8，六次复犯）：≤50 行可一次 Write；>50 行必须分步 — ① Write ≤50 行骨架 ② Edit 逐段填充，每段 ≤50 行 ③ 多段 Edit 可并行发出。Write 失败 1 次 → 立即切 Bash `cat <<'EOF' > file`。禁止同一方式连续失败超过 2 次
 - **并行执行原则**：多个独立修改 → 一条消息并行发出所有 Edit；独立文件更新（CODE_MAP/progress/CLAUDE.md 等）→ 并行不串行；P0/P1 修复列表 → 逐条核销不漏项

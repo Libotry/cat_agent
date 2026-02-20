@@ -44,11 +44,16 @@ async def get_agent_resources(agent_id: int) -> dict:
     return {item["resource_type"]: item["quantity"] for item in r.json()}
 
 
+async def set_resource(agent_id: int, resource_type: str, quantity: float):
+    """dev API：直接设置 agent 资源数量（query params）"""
+    await CLIENT.post("/api/dev/set-resource",
+                      params={"agent_id": agent_id, "resource_type": resource_type, "quantity": quantity})
+
+
 async def reset_env(agent_id: int):
     """重置 agent 状态：恢复体力、补充 credits、清空策略"""
     await CLIENT.put(f"/api/agents/{agent_id}", json={"stamina": 100})
-    await CLIENT.post("/api/dev/set-resource",
-                      json={"agent_id": agent_id, "resource_type": "credits", "quantity": 200})
+    await set_resource(agent_id, "credits", 200)
     await CLIENT.delete(f"/api/agents/{agent_id}/strategies")
 
 
@@ -84,8 +89,7 @@ async def test_keep_working(agent_id: int, farm_id: int):
     await reset_env(agent_id)
 
     # 清空 wheat（通过 dev API 设置资源）
-    await CLIENT.post("/api/dev/set-resource",
-                      json={"agent_id": agent_id, "resource_type": "wheat", "quantity": 0})
+    await set_resource(agent_id, "wheat", 0)
 
     # 确保 agent 在农田工作
     await ensure_farm_worker(agent_id, farm_id)
@@ -126,8 +130,7 @@ async def test_keep_working(agent_id: int, farm_id: int):
         return
 
     # 设置 wheat 接近目标，再触发一次
-    await CLIENT.post("/api/dev/set-resource",
-                      json={"agent_id": agent_id, "resource_type": "wheat", "quantity": 25})
+    await set_resource(agent_id, "wheat", 25)
     await CLIENT.post("/api/cities/长安/production-tick")
 
     res = await get_agent_resources(agent_id)
@@ -160,12 +163,10 @@ async def test_opportunistic_buy(buyer_id: int, seller_id: int):
     await reset_env(seller_id)
 
     # 清空 buyer 的 flour
-    await CLIENT.post("/api/dev/set-resource",
-                      json={"agent_id": buyer_id, "resource_type": "flour", "quantity": 0})
+    await set_resource(buyer_id, "flour", 0)
 
     # 确保 seller 有 flour 可以挂单
-    await CLIENT.post("/api/dev/set-resource",
-                      json={"agent_id": seller_id, "resource_type": "flour", "quantity": 50})
+    await set_resource(seller_id, "flour", 50)
 
     # seller 挂低价单：30 flour for 24 credits（单价 0.8 < 1.5）
     r = await CLIENT.post("/api/market/orders", json={
@@ -238,12 +239,10 @@ async def test_opportunistic_buy_skips_expensive(buyer_id: int, seller_id: int):
     await reset_env(seller_id)
 
     # 清空 buyer 的 flour
-    await CLIENT.post("/api/dev/set-resource",
-                      json={"agent_id": buyer_id, "resource_type": "flour", "quantity": 0})
+    await set_resource(buyer_id, "flour", 0)
 
     # seller 挂高价单：10 flour for 30 credits（单价 3.0 > 1.5）
-    await CLIENT.post("/api/dev/set-resource",
-                      json={"agent_id": seller_id, "resource_type": "flour", "quantity": 20})
+    await set_resource(seller_id, "flour", 20)
     r = await CLIENT.post("/api/market/orders", json={
         "seller_id": seller_id,
         "sell_type": "flour", "sell_amount": 10.0,
