@@ -331,21 +331,23 @@ graph TB
 
     subgraph "API层"
         FastAPI[FastAPI Server]
-        WS[WebSocket]
+        WS[WebSocket 聊天]
     end
 
-    subgraph "核心服务"
-        AgentRunner[Agent Runner<br/>LLM调用]
+    subgraph "核心引擎"
+        AgentRunner[Agent Runner<br/>LLM 调用 + Tool Use]
         AutonomyService[Autonomy Service<br/>自主行为决策]
         WakeupService[Wakeup Service<br/>唤醒引擎]
-        ToolRegistry[Tool Registry<br/>工具注册]
+        ToolRegistry[Tool Registry<br/>5 个注册工具]
+        StatusHelper[Status Helper<br/>状态广播]
     end
 
     subgraph "城市与经济"
-        CityService[City Service<br/>城市系统]
-        WorkService[Work Service<br/>工作岗位]
-        ShopService[Shop Service<br/>商店系统]
-        EconomyService[Economy Service<br/>经济系统]
+        CityService[City Service<br/>建筑/工人/生产]
+        WorkService[Work Service<br/>打卡工作]
+        ShopService[Shop Service<br/>虚拟商店]
+        EconomyService[Economy Service<br/>配额/信用点]
+        MarketService[Market Service<br/>交易市场]
     end
 
     subgraph "记忆系统"
@@ -355,8 +357,8 @@ graph TB
     end
 
     subgraph "基础设施"
-        Scheduler[Scheduler<br/>定时任务]
-        SQLite[(SQLite<br/>结构化+向量数据)]
+        Scheduler[Scheduler<br/>每日午夜 + 每小时]
+        SQLite[(SQLite<br/>结构化 + 向量数据)]
     end
 
     subgraph "外部服务"
@@ -371,21 +373,35 @@ graph TB
     FastAPI --> WakeupService
     FastAPI --> CityService
     FastAPI --> EconomyService
+    FastAPI --> MarketService
 
-    AgentRunner --> AutonomyService
+    WS --> WakeupService
+    WS --> AgentRunner
+    WS --> EconomyService
+
+    AgentRunner --> MemoryService
     AgentRunner --> ToolRegistry
+    AgentRunner --> StatusHelper
     AgentRunner --> OpenAI
     AgentRunner --> Anthropic
     AgentRunner --> OpenRouter
 
-    AutonomyService --> MemoryService
-    AutonomyService --> EconomyService
-    WakeupService --> AgentRunner
+    ToolRegistry --> CityService
+    ToolRegistry --> MarketService
 
-    CityService --> WorkService
-    CityService --> ShopService
-    WorkService --> EconomyService
-    ShopService --> EconomyService
+    Scheduler --> AutonomyService
+    Scheduler --> MemoryService
+    Scheduler --> CityService
+
+    AutonomyService --> AgentRunner
+    AutonomyService --> WorkService
+    AutonomyService --> ShopService
+    AutonomyService --> EconomyService
+    AutonomyService --> CityService
+    AutonomyService --> MarketService
+    AutonomyService --> StatusHelper
+
+    WakeupService -.->|小模型选人| AgentRunner
 
     MemoryService --> VectorStore
     MemoryAdmin --> MemoryService
@@ -395,8 +411,11 @@ graph TB
     MemoryService --> SQLite
     EconomyService --> SQLite
     CityService --> SQLite
+    MarketService --> SQLite
+    WorkService --> SQLite
+    ShopService --> SQLite
 
-    Scheduler --> EconomyService
+    StatusHelper -.->|WebSocket 广播| WS
     Scheduler --> MemoryService
     Scheduler --> WakeupService
 
