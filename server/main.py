@@ -1,4 +1,6 @@
 import asyncio
+import json
+import logging
 import sys
 import os
 
@@ -15,10 +17,12 @@ from sqlalchemy import select, func as sa_func
 from app.core import init_db
 from app.core.config import settings
 from app.core.database import async_session
-from app.models import Agent, Job, VirtualItem, Building, Resource
+from app.models import Agent, Job, VirtualItem, Building, Resource, Memory, MemoryType
 from app.api import agents_router, chat_router, dev_router, bounties_router, work_router, shop_router, memory_router, city_router
-from app.services.vector_store import init_vector_store, close_vector_store
+from app.services.vector_store import init_vector_store, close_vector_store, upsert_memory
 from app.services.scheduler import scheduler_loop, autonomy_loop
+
+logger = logging.getLogger(__name__)
 
 
 async def ensure_human_agent():
@@ -79,12 +83,53 @@ async def seed_city_buildings():
             ])
 
         await db.commit()
+
+
+async def seed_public_memories():
+    """公共记忆种子数据填充（幂等：按 content 差集，可补全之前失败的条目）"""
+    async with async_session() as db:
+        data_path = os.path.join(os.path.dirname(__file__), "data", "public_memories.json")
+        with open(data_path, "r", encoding="utf-8") as f:
+            seeds = json.load(f)
+
+        existing = (await db.execute(
+            select(Memory.content).where(Memory.memory_type == MemoryType.PUBLIC)
+        )).scalars().all()
+        existing_set = set(existing)
+
+        to_insert = [item for item in seeds if item["content"] not in existing_set]
+        if not to_insert:
+            logger.info("公共记忆种子数据已完整，跳过填充")
+            return
+
+        inserted = 0
+        for item in to_insert:
+            content = item["content"]
+            try:
+                async with db.begin_nested():
+                    memory = Memory(
+                        agent_id=None,
+                        memory_type=MemoryType.PUBLIC,
+                        content=content,
+                    )
+                    db.add(memory)
+                    await db.flush()
+                    await upsert_memory(memory.id, -1, content, db)
+                inserted += 1
+            except Exception as e:
+                logger.warning("公共记忆 embedding 生成失败，跳过: %s — %s", content[:20], e)
+
+        await db.commit()
+        logger.info("公共记忆种子填充完成: %d/%d 条", inserted, len(to_insert))
+
+
 async def lifespan(app: FastAPI):
     await init_db()
     await ensure_human_agent()
     await seed_jobs_and_items()
     await seed_city_buildings()
     await init_vector_store()
+    await seed_public_memories()
     scheduler_task = asyncio.create_task(scheduler_loop())
     autonomy_task = asyncio.create_task(autonomy_loop())
     yield

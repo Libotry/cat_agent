@@ -17,6 +17,7 @@
 | DEV-40 | 功能设计脱离基础设施现实 | 通用/流程 | 🟢 | flow-rules.md |
 | DEV-41 | 用户要求拉角色但不读角色定义文件 | 通用/流程 | 🟢 | flow-rules.md |
 | DEV-42 | 对话开头环境指令未执行就动手改文件 | 通用/流程 | 🟢 | flow-rules.md |
+| DEV-43 | 批量/seed 幂等设计未考虑"部分成功"中间状态 | 通用/流程 | 🟢 | flow-rules.md |
 | DEV-3 | 联调问题用双终端来回排查 | 通用/工具 | 🟢 | tool-rules.md |
 | DEV-8 | Write 工具调用反复失败 | 通用/工具 | 🔴×5 | tool-rules.md |
 | DEV-12 | 外部 CLI 跳过环境探针+串行试错 | 通用/工具 | 🟡×2 | tool-rules.md |
