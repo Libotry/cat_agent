@@ -1,5 +1,9 @@
 #!/usr/bin/env node
 /**
+ * @deprecated 已迁移到 Claude + Playwright 流程。
+ * 新流程：设计终端（Opus）直接产出 UI 设计稿，见 docs/workflows/development-workflow.md 阶段 2.5。
+ * 本脚本保留作为备选方案。
+ *
  * gemini-design.mjs
  * 阶段 2.5：UI 设计稿生成
  *

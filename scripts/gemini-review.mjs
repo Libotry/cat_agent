@@ -1,5 +1,9 @@
 #!/usr/bin/env node
 /**
+ * @deprecated 已迁移到 Claude + Playwright 流程。
+ * 新流程：用 Task 启独立 agent + Playwright MCP 审查，见 docs/workflows/development-workflow.md 阶段 6.5。
+ * 本脚本保留作为备选方案。
+ *
  * gemini-review.mjs
  * 阶段 6.5：UI 美学验收
  *

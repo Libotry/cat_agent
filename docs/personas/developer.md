@@ -49,11 +49,11 @@
 
 **前端 UI 设计流程**：
 ```
-前端页面开发时，调用 Gemini 做 UI 美学 review 或生成设计方案：
-- 配置：server/.env 中 GEMINI_AUTH_TOKEN / GEMINI_BASE_URL / GEMINI_MODEL
-- 端点兼容 OpenAI 格式，直接用 openai SDK 调用
-- 推荐模型：gemini-3-pro-preview-maxthinking（美学能力强）
-- 流程：前端页面截图 / 组件代码 → 发给 Gemini review → 根据建议调整
+前端页面开发时，UI 美学验收使用独立 Agent + Playwright MCP：
+- 阶段 2.5：设计终端（Opus）读取 web/src/themes.css 直接产出 UI 设计稿
+- 阶段 6.5：用 Task 启独立 agent（subagent_type=general-purpose）+ Playwright MCP 截图审查
+- 流程：独立 Agent 截图 + accessibility snapshot + getComputedStyle 验证 → 审查报告 → 根据建议调整
+- 详见 docs/workflows/development-workflow.md 阶段 2.5 / 6.5
 ```
 
 ### 行为准则

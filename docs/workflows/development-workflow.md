@@ -13,9 +13,11 @@
   ↓
 阶段 1：写 IR 草稿 → 五方评审会议（审稿）→ 修订 → 用户确认
   ↓
-阶段 2：技术设计（Developer/Tech Lead 编写 spec）
+阶段 2：SR 需求拆分（设计终端编写）
   ↓
-阶段 2.5：UI 设计稿（Gemini 生成）[仅含前端 UI 的功能]
+阶段 2a：AR 技术设计（设计终端编写，独立文件 AR-M*-xxx.md）
+  ↓
+阶段 2.5：UI 设计稿（设计终端产出）[仅含前端 UI 的功能]
   ↓
 阶段 3：正向串讲（Developer → QA Lead）[可选]
   ↓
@@ -25,7 +27,7 @@
   ↓
 阶段 6：开发实施（Claude Code 按设计稿写代码）
   ↓
-阶段 6.5：UI 美学验收（Gemini 截图审查）[仅含前端 UI 的功能]
+阶段 6.5：UI 美学验收（独立 Agent + Playwright）[仅含前端 UI 的功能]
   ↓ ← 未通过则回到阶段 6 修复，再次验收
 阶段 7：集成测试（QA Lead 验证 + Developer 修复）
   ↓
@@ -82,34 +84,57 @@
 
 ---
 
-## 阶段 2：技术设计
+## 阶段 2：SR 需求拆分
 
-**目标**：在 spec 文件中补充技术设计部分（架构、接口、数据库、流程）。
+**目标**：将 IR 拆分为可执行的任务清单，定义接口契约和验收标准。
 
-**负责**：Developer（主责）→ Architect（审核）
+**负责**：设计终端（Opus）
 
 **实现**：
-1. 读取 `docs/specs/SPEC-XXX/spec.md` 的需求部分
-2. 在同一文件中补充技术设计（架构图、模块划分、接口定义、数据库设计、关键流程、风险应对）
-3. Architect 审核通过后更新状态
+1. 读取 IR（`01-需求原型.md`），拆分为里程碑目标、任务 ID/名称/依赖/状态
+2. 定义接口契约（函数签名）、数据模型变更、关键约束、安全规则、配置项
+3. 产出测试用例列表、不改动文件表、参考文件表
+4. 用户确认后进入 AR
+
+**产出**：`docs/specs/SPEC-XXX-功能名/02-需求拆分.md` 对应章节
 
 **检查点**：
-- [ ] spec 文件包含完整技术设计
-- [ ] Architect 审核通过
+- [ ] SR 包含完整任务拆分和接口契约
+- [ ] 用户已确认 SR
 
 ---
 
-## 阶段 2.5：UI 设计稿（Gemini 生成）
+## 阶段 2a：AR 技术设计
+
+**目标**：在 SR 基础上产出架构设计，定义异常策略、安全检查、副作用时序等关键架构决策。
+
+**负责**：设计终端（Opus）
+
+**实现**：
+1. 基于 SR 产出独立 AR 文件（`AR-M*-xxx.md`），不附在 SR/TDD 内
+2. AR 必须覆盖：异常传播策略、副作用时序、安全检查层级、可配置项清单
+3. Sonnet 做开发终端时，AR 额外补充伪代码、分支矩阵、文件级实现指引
+4. 用户确认后进入串讲/编码
+
+**产出**：`docs/specs/SPEC-XXX-功能名/AR-M*-xxx.md`
+
+**检查点**：
+- [ ] AR 独立文件已产出
+- [ ] 异常策略、安全检查、副作用时序、可配置项四项均已覆盖
+- [ ] 用户已确认 AR
+
+---
+
+## 阶段 2.5：UI 设计稿（设计终端产出）
 
 **触发条件**：功能包含新的前端 UI 组件或页面。纯后端/API 功能跳过此阶段。
 
-**目标**：在写代码前，让 Gemini 作为 UI 设计师产出设计规格，Claude Code 按规格实现，保证视觉质量。
+**目标**：在写代码前，由设计终端（Opus）直接产出 UI 设计规格，开发终端按规格实现，保证视觉质量。
 
 **执行**：
-```bash
-# 输入功能描述，Gemini 输出设计稿
-VAULT_MASTER_KEY="your-key" node scripts/gemini-design.mjs "功能描述"
-```
+1. 设计终端（Opus）读取 `web/src/themes.css` 作为设计约束（颜色变量、间距体系、字号体系）
+2. 基于 SR/AR 中的功能需求，产出 UI 设计稿
+3. 设计稿保存到 `docs/specs/_ui-designs/YYYY-MM-DD-功能名.md`
 
 **输出**：`docs/specs/_ui-designs/YYYY-MM-DD-功能名.md`，包含：
 - 组件结构树
@@ -122,7 +147,8 @@ VAULT_MASTER_KEY="your-key" node scripts/gemini-design.mjs "功能描述"
 **检查点**：
 - [ ] 设计稿已生成并保存到 `docs/specs/_ui-designs/`
 - [ ] 设计稿包含明确的验收标准（至少 5 条）
-- [ ] Claude Code（Developer）已阅读设计稿，理解要求
+- [ ] 设计稿引用的 CSS 变量均存在于 `themes.css`
+- [ ] 开发终端（Developer）已阅读设计稿，理解要求
 
 ---
 
@@ -189,35 +215,34 @@ VAULT_MASTER_KEY="your-key" node scripts/gemini-design.mjs "功能描述"
 
 ---
 
-## 阶段 6.5：UI 美学验收（Gemini 截图审查）
+## 阶段 6.5：UI 美学验收（独立 Agent + Playwright）
 
 **触发条件**：阶段 2.5 已执行（即本功能有前端 UI）。
 
-**目标**：Gemini Vision 对照设计稿验收实际界面，确保美学质量达标后才进入集成测试。
+**目标**：用 Task 启独立 agent 对照设计稿验收实际界面，确保美学质量达标后才进入集成测试。独立 agent 保证"不是自己审自己"（与 CR 规则一致）。
 
 **执行**：
-```bash
-# 先确保开发服务器运行中（npm run dev）
-# 基础审查（无设计稿对比）
-VAULT_MASTER_KEY="your-key" node scripts/gemini-review.mjs
+用 Task 启独立 agent（`subagent_type=general-purpose`），该 agent 使用 Playwright MCP 工具执行：
+1. `browser_navigate` — 打开目标页面（确保开发服务器已运行）
+2. `browser_take_screenshot` — 截图（Claude 多模态直接看图审查）
+3. `browser_snapshot` — 拿 accessibility tree（语义结构审查）
+4. `browser_evaluate` — 跑 `getComputedStyle` 验证精确数值（间距、颜色、字号）
+5. 交互验证 — `browser_hover`、`browser_click` 验证 hover/active/focus 等交互状态
 
-# 对照设计稿审查（推荐）
-VAULT_MASTER_KEY="your-key" node scripts/gemini-review.mjs \
-  --url http://localhost:5173 \
-  --design docs/specs/_ui-designs/YYYY-MM-DD-功能名.md
-```
+审查维度（7 维度打分）：
+- 布局与间距、颜色与主题一致性、字体与排版、交互状态、响应式适配、可访问性、整体美感
 
 **通过标准**：综合评分 ≥ 7/10 且无 P0 问题
 
 **循环**：
 ```
-Gemini 审查 → FAIL → Claude Code 修复 → 重新审查 → 直到 PASS
+独立 Agent 审查 → FAIL → 开发终端修复 → 重新审查 → 直到 PASS
 ```
 
-**产出**：`docs/specs/_ui-reviews/YYYY-MM-DD-HH-mm-ss.md`
+**产出**：`docs/specs/_ui-reviews/YYYY-MM-DD-功能名.md`
 
 **检查点**：
-- [ ] Gemini 审查结论为 PASS
+- [ ] 独立 Agent 审查结论为 PASS
 - [ ] 审查报告已保存
 - [ ] 所有 P0 问题已修复
 
@@ -258,7 +283,7 @@ Gemini 审查 → FAIL → Claude Code 修复 → 重新审查 → 直到 PASS
 
 1. **不回读自己刚写的文档** — 同一会话中刚产出的 IR/SR/PLAN 内容直接引用，不从磁盘重新加载
 2. **并行读文件** — 需要读多个外部代码文件时，一次并行读完，不分批串行
-3. **普通文本文档用便宜模型** — AR/TDD 等纯文本文档用子 task + haiku/sonnet 写，不占用 opus 上下文
+3. **普通文本文档用便宜模型** — TDD 等纯文本文档用子 task + haiku/sonnet 写，不占用 opus 上下文
 4. **工具调用失败立即修正** — 读错误信息，修正参数，不盲目重试同一调用
 5. **外部进程/CLI 排查先做环境全景扫描** — 排查子进程超时、连接失败等问题时，先花 5 分钟并行验证：① 代理变量（`env | grep -i proxy`）② 直连测试（`curl --noproxy "*"`）③ 配置文件实际路径（grep hardcoded path）④ 进程读的是哪份配置。多个假设并行验证，不串行等超时（参见 DEV-12）
 6. **执行策略按复杂度选择** — 小任务（≤5 文件、单模块）一条龙直接编码（Opus 或 Sonnet 均可）；大任务（≥6 文件或跨前后端+测试）开 team 分发并行。中间再开子 agent 传上下文的通信开销往往大于直接干活的成本
@@ -266,7 +291,7 @@ Gemini 审查 → FAIL → Claude Code 修复 → 重新审查 → 直到 PASS
 
 ## 多终端协作流程
 
-> 详见 [multi-terminal-collaboration.md](./multi-terminal-collaboration.md)（Opus/Sonnet 分工、SR/AR 标准、并发策略、分支策略、Sonnet 踩坑预警）
+> 详见 [multi-terminal-collaboration.md](./multi-terminal-collaboration.md)（Opus/Sonnet 分工、SR 标准、AR 策略、并发策略、分支策略、Sonnet 踩坑预警）
 
 ---
 
