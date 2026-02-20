@@ -410,6 +410,7 @@ async def execute_decisions(decisions: list[dict], db: AsyncSession, snapshot: s
                             "agent_name": agent_name,
                             "persona": agent.persona,
                             "model": agent.model,
+                            "personality_json": agent.personality_json,
                             "reason": reason,
                         })
                 else:

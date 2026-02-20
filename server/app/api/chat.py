@@ -335,6 +335,7 @@ async def handle_wakeup(message: Message):
                     "agent_name": agent.name,
                     "persona": agent.persona,
                     "model": agent.model,
+                    "personality_json": agent.personality_json,
                     "history": history,
                 })
         # 数据库会话已关闭，释放锁
@@ -345,7 +346,8 @@ async def handle_wakeup(message: Message):
                 agent_info["agent_id"],
                 agent_info["agent_name"],
                 agent_info["persona"],
-                agent_info["model"]
+                agent_info["model"],
+                agent_info.get("personality_json"),
             )
             async with async_session() as mem_db:
                 reply, usage_info, used_memory_ids = await runner.generate_reply(

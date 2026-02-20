@@ -41,6 +41,7 @@ class Agent(Base):
     satiety = Column(Integer, default=100)  # 饱腹度 0-100
     mood = Column(Integer, default=80)  # 心情 0-100
     stamina = Column(Integer, default=100)  # 体力 0-100
+    personality_json = Column(JSON, nullable=True)  # SOUL 结构化人格（M6.2）
     created_at = Column(DateTime, server_default=func.now())
 
     memories = relationship("Memory", back_populates="agent")

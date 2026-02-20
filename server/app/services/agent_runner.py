@@ -31,16 +31,55 @@ SYSTEM_PROMPT_TEMPLATE = """你是 {name}，一个聊天群里的成员。
 - 可以用 @名字 提及其他群成员"""
 
 
+SOUL_PROMPT_TEMPLATE = """你是 {name}，一个聊天群里的成员。
+
+你的人格设定：
+{persona}
+
+## 深度人格
+{soul_block}
+
+规则：
+- 用自然、口语化的方式说话，符合你的人格和说话风格
+- 回复简短（1-3句话），像真人聊天
+- 不要自称AI或机器人
+- 可以用 @名字 提及其他群成员
+- 适当使用你的口头禅，但不要每句都用
+- 绝对不要触碰你的行为禁区"""
+
+
+def _build_soul_block(pj: dict) -> str:
+    """将 personality_json dict 格式化为 prompt 文本块"""
+    parts = []
+    if pj.get("values"):
+        parts.append("核心价值观：" + "、".join(pj["values"]))
+    if pj.get("speaking_style"):
+        parts.append(f"说话风格：{pj['speaking_style']}")
+    if pj.get("knowledge_domains"):
+        parts.append("擅长领域：" + "、".join(pj["knowledge_domains"]))
+    if pj.get("emotional_tendency"):
+        parts.append(f"情感倾向：{pj['emotional_tendency']}")
+    if pj.get("catchphrases"):
+        parts.append("口头禅：" + "、".join(f'"{c}"' for c in pj["catchphrases"]))
+    if pj.get("relationships"):
+        rel_lines = [f"  - 对 {k}：{v}" for k, v in pj["relationships"].items()]
+        parts.append("对其他成员的态度：\n" + "\n".join(rel_lines))
+    if pj.get("taboos"):
+        parts.append("行为禁区：" + "、".join(pj["taboos"]))
+    return "\n".join(parts)
+
+
 class AgentRunner:
     """单个 Agent 的 LLM 调用管理器"""
 
     MAX_CONTEXT_ROUNDS = 20
 
-    def __init__(self, agent_id: int, name: str, persona: str, model: str):
+    def __init__(self, agent_id: int, name: str, persona: str, model: str, personality_json: dict | None = None):
         self.agent_id = agent_id
         self.name = name
         self.persona = persona
         self.model = model
+        self.personality_json = personality_json
 
     async def generate_reply(
         self, chat_history: list[dict], db: AsyncSession | None = None
@@ -56,9 +95,16 @@ class AgentRunner:
         if len(context) > self.MAX_CONTEXT_ROUNDS:
             context = context[-self.MAX_CONTEXT_ROUNDS:]
 
-        system_msg = SYSTEM_PROMPT_TEMPLATE.format(
-            name=self.name, persona=self.persona
-        )
+        system_msg = ""
+        if self.personality_json:
+            soul_block = _build_soul_block(self.personality_json)
+            system_msg = SOUL_PROMPT_TEMPLATE.format(
+                name=self.name, persona=self.persona, soul_block=soul_block
+            )
+        else:
+            system_msg = SYSTEM_PROMPT_TEMPLATE.format(
+                name=self.name, persona=self.persona
+            )
 
         # M2-3: 记忆注入
         used_memory_ids: list[int] = []
@@ -229,11 +275,18 @@ class AgentRunnerManager:
         self._runners: dict[int, AgentRunner] = {}
 
     def get_or_create(
-        self, agent_id: int, name: str, persona: str, model: str
+        self, agent_id: int, name: str, persona: str, model: str, personality_json: dict | None = None
     ) -> AgentRunner:
-        if agent_id not in self._runners:
-            self._runners[agent_id] = AgentRunner(agent_id, name, persona, model)
-        return self._runners[agent_id]
+        runner = self._runners.get(agent_id)
+        if runner is None:
+            runner = AgentRunner(agent_id, name, persona, model, personality_json)
+            self._runners[agent_id] = runner
+        else:
+            # 刷新可变字段，确保 PUT 更新后生效
+            runner.persona = persona
+            runner.model = model
+            runner.personality_json = personality_json
+        return runner
 
     def remove(self, agent_id: int):
         self._runners.pop(agent_id, None)
@@ -256,6 +309,7 @@ class AgentRunnerManager:
             runner = self.get_or_create(
                 info["agent_id"], info["agent_name"],
                 info["persona"], info["model"],
+                info.get("personality_json"),
             )
             model_key = info["model"]
             prompts_by_model.setdefault(model_key, []).append(

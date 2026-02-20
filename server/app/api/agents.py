@@ -1,17 +1,34 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+import logging
 import secrets
 from ..core import get_db
 from ..models import Agent
-from .schemas import AgentCreate, AgentUpdate, AgentOut
+from .schemas import AgentCreate, AgentUpdate, AgentOut, SoulPersonality
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/agents", tags=["agents"])
 
 
 def generate_bot_token() -> str:
     """生成 oc_ 前缀的 bot token"""
     return f"oc_{secrets.token_hex(24)}"
+
+
+def _validate_personality_json(raw: dict | None) -> dict | None:
+    """校验并清洗 personality_json，返回清洗后的 dict 或 None"""
+    if raw is None:
+        return None
+    if not raw:  # 空 dict {} → 等同无 personality
+        return None
+    try:
+        soul = SoulPersonality(**raw)
+        result = soul.model_dump(exclude_none=True)
+        return result if result else None
+    except Exception as e:
+        logger.warning("SoulPersonality validation failed: %s, ignoring personality_json", e)
+        return None
 
 
 @router.get("/", response_model=list[AgentOut])
@@ -27,8 +44,9 @@ async def create_agent(data: AgentCreate, db: AsyncSession = Depends(get_db)):
     if existing.scalar_one_or_none():
         raise HTTPException(409, f"Agent name '{data.name}' already exists")
 
+    validated_pj = _validate_personality_json(data.personality_json)
     agent = Agent(name=data.name, persona=data.persona, model=data.model, avatar=data.avatar,
-                  bot_token=generate_bot_token())
+                  bot_token=generate_bot_token(), personality_json=validated_pj)
     db.add(agent)
     await db.commit()
     await db.refresh(agent)
@@ -58,6 +76,10 @@ async def update_agent(agent_id: int, data: AgentUpdate, db: AsyncSession = Depe
         existing = await db.execute(select(Agent).where(Agent.name == update_data["name"]))
         if existing.scalar_one_or_none():
             raise HTTPException(409, f"Agent name '{update_data['name']}' already exists")
+
+    # personality_json 校验
+    if "personality_json" in update_data:
+        update_data["personality_json"] = _validate_personality_json(update_data["personality_json"])
 
     for field, value in update_data.items():
         setattr(agent, field, value)

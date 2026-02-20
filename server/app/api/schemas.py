@@ -1,7 +1,35 @@
+import logging
 import re
 from datetime import datetime
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, model_validator
 from typing import Optional
+
+logger = logging.getLogger(__name__)
+
+
+# --- SOUL 结构化人格 ---
+class SoulPersonality(BaseModel):
+    model_config = {"extra": "ignore"}
+    values: Optional[list[str]] = None           # 核心价值观（1~5 条）
+    speaking_style: Optional[str] = None         # 说话风格描述
+    knowledge_domains: Optional[list[str]] = None  # 擅长领域
+    emotional_tendency: Optional[str] = None     # 情感倾向
+    catchphrases: Optional[list[str]] = None     # 口头禅（0~3 条）
+    relationships: Optional[dict[str, str]] = None  # 对其他 Agent 的态度
+    taboos: Optional[list[str]] = None           # 行为禁区（0~3 条）
+
+    @model_validator(mode="after")
+    def truncate_lists(self) -> "SoulPersonality":
+        if self.values and len(self.values) > 5:
+            logger.warning("SoulPersonality.values has %d items, truncating to 5", len(self.values))
+            self.values = self.values[:5]
+        if self.catchphrases and len(self.catchphrases) > 3:
+            logger.warning("SoulPersonality.catchphrases has %d items, truncating to 3", len(self.catchphrases))
+            self.catchphrases = self.catchphrases[:3]
+        if self.taboos and len(self.taboos) > 3:
+            logger.warning("SoulPersonality.taboos has %d items, truncating to 3", len(self.taboos))
+            self.taboos = self.taboos[:3]
+        return self
 
 
 # --- Agent ---
@@ -10,6 +38,7 @@ class AgentCreate(BaseModel):
     persona: str
     model: str = "gpt-4o-mini"
     avatar: str = ""
+    personality_json: Optional[dict] = None
 
     @field_validator("name")
     @classmethod
@@ -31,6 +60,7 @@ class AgentUpdate(BaseModel):
     avatar: Optional[str] = None
     status: Optional[str] = None
     stamina: Optional[int] = None
+    personality_json: Optional[dict] = None
 
     @field_validator("name")
     @classmethod
@@ -65,6 +95,7 @@ class AgentOut(BaseModel):
     daily_free_quota: int
     quota_used_today: int
     bot_token: str | None = None
+    personality_json: dict | None = None
 
 
 # --- Message ---
