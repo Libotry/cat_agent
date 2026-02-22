@@ -89,6 +89,9 @@ async def seed_public_memories():
     """公共记忆种子数据填充（幂等：按 content 差集，可补全之前失败的条目）"""
     async with async_session() as db:
         data_path = os.path.join(os.path.dirname(__file__), "data", "public_memories.json")
+        if not os.path.exists(data_path):
+            logger.warning("公共记忆种子文件不存在，跳过填充: %s", data_path)
+            return
         with open(data_path, "r", encoding="utf-8") as f:
             seeds = json.load(f)
 

@@ -32,7 +32,7 @@ class Settings(BaseSettings):
 
     # Embedding API（硅基流动）
     embedding_api_base: str = "https://api.siliconflow.cn/v1"
-    embedding_api_key: str = ""
+    embedding_api_key: str = Field(default="", validation_alias=AliasChoices("EMBEDDING_API_KEY", "SILICONFLOW_API_KEY"))
     embedding_model: str = "BAAI/bge-m3"
     embedding_dim: int = 1024
 
