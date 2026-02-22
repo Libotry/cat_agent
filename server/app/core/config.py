@@ -1,5 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, AliasChoices
 from pathlib import Path
 
 
@@ -25,6 +25,11 @@ class Settings(BaseSettings):
     siliconflow_auth_token: str = ""
     siliconflow_base_url: str = "https://api.siliconflow.cn/v1"
 
+    # 自定义 OpenAI 兼容 API（支持填写完整 /chat/completions 地址）
+    custom_api_auth_token: str = Field(default="", validation_alias=AliasChoices("CUSTOM_API_AUTH_TOKEN", "CUSTOM_API_KEY"))
+    custom_api_base_url: str = "https://api.siliconflow.cn/v1/chat/completions"
+    custom_api_model: str = ""
+
     # Embedding API（硅基流动）
     embedding_api_base: str = "https://api.siliconflow.cn/v1"
     embedding_api_key: str = ""
@@ -46,11 +51,26 @@ class ModelProvider(BaseModel):
     name: str       # 供应商标识（对应 .env 中的前缀）
     model_id: str   # 该供应商下的模型 ID
 
+    @staticmethod
+    def _normalize_base_url(url: str) -> str:
+        u = (url or "").strip().rstrip("/")
+        if not u:
+            return u
+        if u.endswith("/chat/completions"):
+            return u[:-len("/chat/completions")]
+        return u
+
     def get_auth_token(self) -> str:
         return getattr(settings, f"{self.name}_auth_token", "")
 
     def get_base_url(self) -> str:
-        return getattr(settings, f"{self.name}_base_url", "")
+        raw = getattr(settings, f"{self.name}_base_url", "")
+        return self._normalize_base_url(raw)
+
+    def get_model_id(self) -> str:
+        dynamic_key = f"{self.name}_model"
+        dynamic_model = getattr(settings, dynamic_key, "")
+        return (dynamic_model or self.model_id or "").strip()
 
     def is_available(self) -> bool:
         return bool(self.get_auth_token())
@@ -98,6 +118,13 @@ MODEL_REGISTRY: dict[str, ModelEntry] = {
             ModelProvider(name="siliconflow", model_id="Qwen/Qwen2.5-7B-Instruct"),
         ],
     ),
+    # 用户自定义 OpenAI 兼容 API
+    "custom-api": ModelEntry(
+        display_name="自定义API",
+        providers=[
+            ModelProvider(name="custom_api", model_id=""),
+        ],
+    ),
 }
 
 
@@ -112,7 +139,10 @@ def resolve_model(model_key: str) -> tuple[str, str, str] | None:
     provider = entry.get_active_provider()
     if not provider:
         return None
-    return provider.get_base_url(), provider.get_auth_token(), provider.model_id
+    model_id = provider.get_model_id()
+    if not model_id:
+        return None
+    return provider.get_base_url(), provider.get_auth_token(), model_id
 
 
 def list_available_models() -> list[dict]:
